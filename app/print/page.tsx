@@ -41,3 +41,24 @@ export default function PrintQrPage() {
           img {
             width: 2in;
             height: 2in;
+          }
+
+          .id {
+            margin-top: 6px;
+            font-size: 12px;
+          }
+        `}</style>
+      </head>
+      <body>
+        <div className="grid">
+          {cards.map((card) => (
+            <div key={card.id} className="cell">
+              <img src={`/qr/${card.id}.svg`} alt={card.id} />
+              <div className="id">{card.id}</div>
+            </div>
+          ))}
+        </div>
+      </body>
+    </html>
+  );
+}
