@@ -1,0 +1,16 @@
+[
+  {
+    "id": "test-001",
+    "athleteName": "Test Athlete",
+    "sport": "MLB",
+    "rookieYear": 1999,
+    "notes": "This is a placeholder card for the POC."
+  },
+  {
+    "id": "test-002",
+    "athleteName": "Another Athlete",
+    "sport": "NFL",
+    "rookieYear": 2007,
+    "notes": "Second placeholder card."
+  }
+]
