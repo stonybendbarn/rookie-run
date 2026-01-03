@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-	"qr": "node scripts/generate-qr.mjs"
+    "qr": "node scripts/generate-qr.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "next": "16.1.1",
     "qrcode": "^1.5.4",
     "react": "19.2.3",

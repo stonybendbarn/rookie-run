@@ -1,34 +1,36 @@
-import { getCardById } from "@/lib/cards";
-import Link from "next/link";
+// app/cards/[cardId]/page.tsx
+import sql from "@/lib/db";
 
-type Props = {
+export default async function CardPage({
+  params,
+}: {
   params: Promise<{ cardId: string }>;
-};
-
-export default async function CardPage({ params }: Props) {
+}) {
   const { cardId } = await params;
 
-  const card = getCardById(cardId);
+  const rows = await sql`
+    select
+      id,
+      sport,
+      athlete_name as "athleteName",
+      event_year as "rookieYear",
+      event_label,
+      league,
+      source_url
+    from cards
+    where id = ${cardId}
+    limit 1
+  `;
 
-  if (!card) {
-    return (
-      <main style={{ padding: "2rem" }}>
-        <h1>Card not found</h1>
-        <p>
-          No card exists for ID: <code>{cardId}</code>
-        </p>
-        <p>
-          Try: <Link href="/cards/test-001">/cards/test-001</Link>
-        </p>
-      </main>
-    );
-  }
+  const card = rows[0];
+  if (!card) return <div>Card not found</div>;
 
   return (
     <main style={{ padding: "2rem", maxWidth: 720, margin: "0 auto" }}>
       <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
         {card.athleteName}
       </h1>
+
       <p style={{ marginTop: 0, opacity: 0.8 }}>{card.sport}</p>
 
       <details style={{ marginTop: "1.5rem" }}>
@@ -40,8 +42,13 @@ export default async function CardPage({ params }: Props) {
         </p>
       </details>
 
-      {card.notes ? (
-        <p style={{ marginTop: "1.5rem", opacity: 0.8 }}>{card.notes}</p>
+      {card.source_url ? (
+        <p style={{ marginTop: "1.5rem", opacity: 0.8 }}>
+          Source:{" "}
+          <a href={card.source_url} target="_blank" rel="noreferrer">
+            {card.source_url}
+          </a>
+        </p>
       ) : null}
 
       <hr style={{ margin: "2rem 0" }} />
