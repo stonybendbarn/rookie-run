@@ -1,6 +1,8 @@
 import sql from "@/lib/db";
 import QRCode from "qrcode";
 
+export const runtime = "nodejs";
+
 function getBaseUrl() {
   // Prefer an explicit env var if you set it
   if (process.env.BASE_URL) return process.env.BASE_URL;
@@ -24,30 +26,28 @@ export default async function PrintQrPage({
   const limit = 12;
   const offset = (page - 1) * limit;
 
-  const rows = await sql`
-    select id
-    from cards
-    where deck = 'Rookie Run'
-    order by id asc
-    limit ${limit} offset ${offset}
-  `;
+  const rows = (await sql`
+	  select id
+	  from cards
+	  where deck = 'Rookie Run'
+	  order by id asc
+	  limit ${limit} offset ${offset}
+	`) as Array<{ id: string }>;
 
   const baseUrl = getBaseUrl();
 
   // Generate QR SVGs in parallel
   const cards = await Promise.all(
-    rows.map(async (r: { id: string }) => {
-      const url = `${baseUrl}/cards/${r.id}`;
-
-      const svg = await QRCode.toString(url, {
-        type: "svg",
-        margin: 0, // keep tight; we control padding in layout
-        width: 220, // size inside each cell; tweak if needed
-      });
-
-      return { id: r.id, url, svg };
-    })
-  );
+	  rows.map(async (r) => {
+		const url = `${baseUrl}/cards/${r.id}`;
+		const svg = await QRCode.toString(url, {
+		  type: "svg",
+		  margin: 0,
+		  width: 220,
+		});
+		return { id: r.id, url, svg };
+	  })
+	);
 
   return (
     <main style={{ padding: "0.25in" }}>
