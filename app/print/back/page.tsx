@@ -79,11 +79,12 @@ export default async function PrintBacksPage({
         }
 
         .year {
-          font-size: 56px;
-          font-weight: 800;
-          line-height: 1;
-          margin-top: 0.05in;
-        }
+		  font-size: 56px;
+		  font-weight: 800;
+		  line-height: 1;
+		  margin-top: 0.05in;
+		  color: #666; /* darker = prints better */
+		}
 
         .icon {
           width: 1.35in;
