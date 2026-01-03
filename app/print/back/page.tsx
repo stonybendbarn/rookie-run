@@ -2,8 +2,9 @@ import sql from "@/lib/db";
 
 type Card = {
   id: string;
-  sport: string; // BASEBALL | FOOTBALL | BASKETBALL | HOCKEY | OLYMPICS | TENNIS | GOLF
-  eventYear: number; // year printed on the back
+  sport: string;
+  eventYear: number; // rookie year (must be subtle)
+  playerName: string;
 };
 
 function sportToIconPath(sport: string) {
@@ -24,7 +25,6 @@ function sportToIconPath(sport: string) {
     case "GOLF":
       return "/icons/golf.svg";
     default:
-      // Fallback icon if something unexpected sneaks in
       return "/icons/sports.svg";
   }
 }
@@ -44,7 +44,8 @@ export default async function PrintBacksPage({
     select
       id,
       sport,
-      event_year as "eventYear"
+      event_year as "eventYear",
+      athlete_name as "playerName"
     from cards
     where deck = 'Rookie Run'
     order by id asc
@@ -59,6 +60,7 @@ export default async function PrintBacksPage({
         @page { size: letter; margin: 0.5in; }
 
         .page { font-family: Arial, sans-serif; }
+
         .grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -66,47 +68,48 @@ export default async function PrintBacksPage({
           gap: 0.25in;
         }
 
-        /* One “card back” cell */
         .card {
-          border: 1px solid #000; /* helpful cut guide for dry run; remove later */
+          border: 1px solid #000; /* remove for final print */
           display: flex;
           flex-direction: column;
-          justify-content: space-between; /* pushes year top + icon bottom */
+          justify-content: space-between;
           align-items: center;
           padding: 0.2in 0.15in;
           page-break-inside: avoid;
           background: #fff;
         }
 
+        /* Rookie year – must NOT show through */
         .year {
-		  font-size: 56px;
-		  font-weight: 800;
+		  font-size: 40px;
+		  font-weight: 700;
 		  line-height: 1;
 		  margin-top: 0.05in;
-		  color: #666; /* darker = prints better */
+		  color: rgba(0, 0, 0, 0.68); /* key change */
 		}
 
-        .icon {
-          width: 1.35in;
-          height: 1.35in;
-          margin-bottom: 0.05in;
+        /* Player name – primary readable element */
+        .name {
+          font-size: 20px;
+          font-weight: 500; /* medium */
+          text-align: center;
+          margin: 0.15in 0;
+          color: #111;
         }
 
-        /* Optional tiny ID for sorting/debug; comment out if you don't want it */
-        .id {
-          font-size: 10px;
-          opacity: 0.65;
-          margin-top: 0.05in;
+        .icon {
+          width: 1.15in;
+          height: 1.15in;
+          margin-bottom: 0.15in;
         }
       `}</style>
 
       <div className="grid">
         {cards.map((card) => (
           <div key={card.id} className="card">
-            <div>
-              <div className="year">{card.eventYear}</div>
-              <div className="id">{card.id}</div>
-            </div>
+            <div className="year">{card.eventYear}</div>
+
+            <div className="name">{card.playerName}</div>
 
             <img
               className="icon"
@@ -116,11 +119,16 @@ export default async function PrintBacksPage({
           </div>
         ))}
 
-        {/* Keep the grid stable if the last page has < 12 cards */}
+        {/* pad grid to keep layout stable */}
         {Array.from({ length: Math.max(0, 12 - cards.length) }).map((_, i) => (
-          <div key={`empty-${i}`} className="card" style={{ borderStyle: "dashed", opacity: 0.25 }} />
+          <div
+            key={`empty-${i}`}
+            className="card"
+            style={{ borderStyle: "dashed", opacity: 0.25 }}
+          />
         ))}
       </div>
     </div>
   );
 }
+
