@@ -3,122 +3,133 @@ import QRCode from "qrcode";
 
 export const runtime = "nodejs";
 
+const LIMIT = 12;
+
+// Built-in scale so you can print at 100% and still fit.
+// If you want to keep using printer scaling at 90%, set this to 1.
+const PRINT_SCALE = 0.9;
+
+// Slightly smaller QR so we always have room for the ID footer
+const QR_SIZE = 200;
+
 function getBaseUrl() {
-  // Prefer an explicit env var if you set it
   if (process.env.BASE_URL) return process.env.BASE_URL;
-
-  // Vercel provides VERCEL_URL like: "rookie-run.vercel.app"
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-
-  // Local dev fallback
   return "http://localhost:3000";
 }
 
 export default async function PrintQrPage({
   searchParams,
 }: {
-  // Next can treat these as async in some builds
   searchParams: Promise<{ page?: string }>;
 }) {
   const { page: pageRaw } = await searchParams;
 
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
-  const limit = 12;
-  const offset = (page - 1) * limit;
+  const offset = (page - 1) * LIMIT;
 
   const rows = (await sql`
-	  select id
-	  from cards
-	  where deck = 'Rookie Run'
-	  order by id asc
-	  limit ${limit} offset ${offset}
-	`) as Array<{ id: string }>;
+    select id
+    from cards
+    where deck = 'Rookie Run'
+    order by id asc
+    limit ${LIMIT} offset ${offset}
+  `) as Array<{ id: string }>;
 
   const baseUrl = getBaseUrl();
 
-  // Generate QR SVGs in parallel
   const cards = await Promise.all(
-	  rows.map(async (r) => {
-		const url = `${baseUrl}/cards/${r.id}`;
-		const svg = await QRCode.toString(url, {
-		  type: "svg",
-		  margin: 0,
-		  width: 220,
-		});
-		return { id: r.id, url, svg };
-	  })
-	);
+    rows.map(async (r) => {
+      const url = `${baseUrl}/cards/${r.id}`;
+      const svg = await QRCode.toString(url, {
+        type: "svg",
+        margin: 0,
+        width: QR_SIZE,
+      });
+      return { id: r.id, url, svg };
+    })
+  );
 
   return (
-    <main style={{ padding: "0.25in" }}>
-      <header style={{ marginBottom: "0.15in", fontFamily: "Arial, sans-serif" }}>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>Rookie Run — QR Fronts</div>
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          Page {page} (cards {offset + 1}–{offset + cards.length})
-        </div>
-      </header>
-
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "0.15in",
-        }}
-      >
-        {cards.map((c) => (
-          <div
-            key={c.id}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              padding: "0.12in",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: "2.45in",
-            }}
-          >
-            {/* Inline SVG (print-crisp) */}
-            <div
-              aria-label={`QR ${c.id}`}
-              style={{ width: 220, height: 220 }}
-              dangerouslySetInnerHTML={{ __html: c.svg }}
-            />
-            <div
-              style={{
-                marginTop: 8,
-                fontFamily: "Arial, sans-serif",
-                fontSize: 12,
-                letterSpacing: 0.3,
-              }}
-            >
-              {c.id}
-            </div>
-          </div>
-        ))}
-
-        {/* If fewer than 12 cards returned (end of deck), keep grid stable */}
-        {Array.from({ length: Math.max(0, 12 - cards.length) }).map((_, i) => (
-          <div
-            key={`empty-${i}`}
-            style={{
-              border: "1px dashed #eee",
-              borderRadius: 8,
-              minHeight: "2.45in",
-            }}
-          />
-        ))}
-      </section>
-
-      {/* Print-friendly: hide header if you want truly blank cards */}
+    <div className="page">
       <style>{`
         @page { size: Letter; margin: 0.25in; }
         @media print {
-          header { display: none; }
-          main { padding: 0; }
+          .page { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        .page { font-family: Arial, sans-serif; }
+
+        /* scale wrapper so you can print at 100% */
+        .scale {
+          transform: scale(${PRINT_SCALE});
+          transform-origin: top left;
+          width: calc(100% / ${PRINT_SCALE});
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          grid-auto-rows: 2.45in;
+          gap: 0.15in;
+        }
+
+        .card {
+          box-sizing: border-box;
+          border: 1px solid #ddd; /* cut guide for now; remove later */
+          border-radius: 8px;
+          padding: 0.10in;
+          background: #fff;
+          overflow: hidden;
+
+          /* Reserve a footer row so the ID never gets clipped */
+          display: grid;
+          grid-template-rows: 1fr auto;
+          align-items: center;
+          justify-items: center;
+        }
+
+        .qr {
+          width: ${QR_SIZE}px;
+          height: ${QR_SIZE}px;
+        }
+
+        .id {
+          margin-top: 6px;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 0.6px;
+          color: #000;
+          line-height: 1;
+          padding: 3px 8px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          background: #fff;
         }
       `}</style>
-    </main>
+
+      <div className="scale">
+        <div className="grid">
+          {cards.map((c) => (
+            <div key={c.id} className="card">
+              <div
+                className="qr"
+                aria-label={`QR ${c.id}`}
+                dangerouslySetInnerHTML={{ __html: c.svg }}
+              />
+              <div className="id">{c.id}</div>
+            </div>
+          ))}
+
+          {Array.from({ length: Math.max(0, 12 - cards.length) }).map((_, i) => (
+            <div
+              key={`empty-${i}`}
+              className="card"
+              style={{ borderStyle: "dashed", opacity: 0.25 }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

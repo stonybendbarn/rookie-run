@@ -13,6 +13,7 @@ export default async function CardPage({
       id,
       sport,
       athlete_name as "athleteName",
+      athlete_blurb as "athleteBlurb",
       event_year as "rookieYear",
       event_label,
       league,
@@ -27,11 +28,17 @@ export default async function CardPage({
 
   return (
     <main style={{ padding: "2rem", maxWidth: 720, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
+      <h1 style={{ fontSize: "2rem", marginBottom: "0.25rem" }}>
         {card.athleteName}
       </h1>
 
       <p style={{ marginTop: 0, opacity: 0.8 }}>{card.sport}</p>
+
+      {card.athleteBlurb ? (
+        <p style={{ marginTop: "1rem", lineHeight: 1.5 }}>
+          {card.athleteBlurb}
+        </p>
+      ) : null}
 
       <details style={{ marginTop: "1.5rem" }}>
         <summary style={{ cursor: "pointer", fontSize: "1.1rem" }}>
