@@ -104,39 +104,23 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
             const cardId = match[1];
             console.log("Navigating to card:", cardId);
             
-            // Stop scanning first, then navigate
-            scanner.stop().then(() => {
-              try {
-                scanner.clear();
-                setIsScanning(false);
-                
-                // Use a small delay to ensure state is updated
-                setTimeout(() => {
-                  try {
-                    // Navigate to the new card
-                    if (onScanSuccess) {
-                      onScanSuccess(cardId);
-                    } else {
-                      // Use window.location as fallback for more reliable navigation
-                      window.location.href = `/cards/${cardId}`;
-                    }
-                  } catch (navError: any) {
-                    console.error("Navigation error:", navError);
-                    // Fallback to window.location
-                    window.location.href = `/cards/${cardId}`;
-                  }
-                }, 100);
-              } catch (cleanupError: any) {
-                console.error("Cleanup error:", cleanupError);
-                // Still try to navigate
-                window.location.href = `/cards/${cardId}`;
-              }
-            }).catch((stopError: any) => {
-              console.error("Error stopping scanner:", stopError);
-              // Try to navigate anyway
-              setIsScanning(false);
-              window.location.href = `/cards/${cardId}`;
+            // Stop scanner and navigate immediately
+            // Scanner will auto-restart on new page with scan=true param
+            scanner.stop().catch(() => {
+              // Ignore stop errors
             });
+            
+            // Navigate immediately - smooth transition without page reload
+            try {
+              if (onScanSuccess) {
+                onScanSuccess(cardId);
+              } else {
+                router.push(`/cards/${cardId}?scan=true`);
+              }
+            } catch (navError: any) {
+              console.error("Navigation error:", navError);
+              router.push(`/cards/${cardId}?scan=true`);
+            }
           } else {
             console.warn("Invalid QR code format:", decodedText);
             setError(`Invalid QR code format. Expected URL like /cards/RR-BBK-001, got: ${decodedText.substring(0, 50)}...`);

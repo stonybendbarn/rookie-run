@@ -11,12 +11,12 @@ export default function ScanPage() {
   const handleScanSuccess = (cardId: string) => {
     try {
       console.log("handleScanSuccess called with cardId:", cardId);
-      // Use window.location for more reliable navigation
-      window.location.href = `/cards/${cardId}`;
+      // Use router for smooth navigation
+      router.push(`/cards/${cardId}`);
     } catch (error: any) {
       console.error("Error in handleScanSuccess:", error);
       // Fallback navigation
-      window.location.href = `/cards/${cardId}`;
+      router.push(`/cards/${cardId}`);
     }
   };
 

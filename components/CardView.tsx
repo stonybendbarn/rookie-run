@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import QRScanner from "./QRScanner";
 
 interface Card {
@@ -20,19 +20,27 @@ interface CardViewProps {
 }
 
 export default function CardView({ card }: CardViewProps) {
-  const [showScanner, setShowScanner] = useState(false);
+  const searchParams = useSearchParams();
+  const [showScanner, setShowScanner] = useState(searchParams?.get("scan") === "true");
   const router = useRouter();
+
+  // Keep scanner open when navigating with scan parameter
+  useEffect(() => {
+    if (searchParams?.get("scan") === "true" && !showScanner) {
+      setShowScanner(true);
+    }
+  }, [searchParams, showScanner]);
 
   const handleScanSuccess = (cardId: string) => {
     try {
       console.log("CardView: handleScanSuccess called with cardId:", cardId);
-      setShowScanner(false);
-      // Use window.location for more reliable navigation
-      window.location.href = `/cards/${cardId}`;
+      // Don't close scanner - keep it open for continuous scanning
+      // Use router.push for smooth navigation without page reload
+      router.push(`/cards/${cardId}?scan=true`);
     } catch (error: any) {
       console.error("Error in CardView handleScanSuccess:", error);
       // Fallback navigation
-      window.location.href = `/cards/${cardId}`;
+      router.push(`/cards/${cardId}?scan=true`);
     }
   };
 
@@ -69,7 +77,7 @@ export default function CardView({ card }: CardViewProps) {
           </p>
         ) : null}
 
-        <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <div style={{ marginTop: "2rem" }}>
           <button
             onClick={() => setShowScanner(true)}
             style={{
@@ -92,29 +100,6 @@ export default function CardView({ card }: CardViewProps) {
           >
             Scan Next Athlete
           </button>
-          <a
-            href="/scan"
-            style={{
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #d1d5db",
-              fontSize: "1rem",
-              fontWeight: 500,
-              textAlign: "center",
-              textDecoration: "none",
-              display: "block",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "#e5e7eb";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = "#f3f4f6";
-            }}
-          >
-            Open Scanner Page
-          </a>
         </div>
 
         <hr style={{ margin: "2rem 0" }} />
@@ -127,7 +112,12 @@ export default function CardView({ card }: CardViewProps) {
       {showScanner && (
         <QRScanner
           onScanSuccess={handleScanSuccess}
-          onClose={() => setShowScanner(false)}
+          onClose={() => {
+            setShowScanner(false);
+            // Remove scan param from URL when closing
+            router.replace(`/cards/${card.id}`);
+          }}
+          autoStart={searchParams?.get("scan") === "true"}
         />
       )}
     </>
