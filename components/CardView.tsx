@@ -24,12 +24,14 @@ export default function CardView({ card }: CardViewProps) {
   const [showScanner, setShowScanner] = useState(searchParams?.get("scan") === "true");
   const router = useRouter();
 
-  // Keep scanner open when navigating with scan parameter
+  // Auto-open scanner when scan parameter is present
   useEffect(() => {
-    if (searchParams?.get("scan") === "true" && !showScanner) {
+    const shouldShow = searchParams?.get("scan") === "true";
+    if (shouldShow && !showScanner) {
+      console.log("Auto-opening scanner from URL parameter");
       setShowScanner(true);
     }
-  }, [searchParams, showScanner]);
+  }, [searchParams]);
 
   const handleScanSuccess = (cardId: string) => {
     try {
@@ -111,6 +113,7 @@ export default function CardView({ card }: CardViewProps) {
 
       {showScanner && (
         <QRScanner
+          key={`scanner-${card.id}-${searchParams?.get("scan")}`} // Force remount to ensure clean state
           onScanSuccess={handleScanSuccess}
           onClose={() => {
             setShowScanner(false);

@@ -33,13 +33,27 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
     };
   }, [isScanning]);
 
+  // Auto-start when component mounts with autoStart=true
   useEffect(() => {
-    // Auto-start scanning if requested
-    if (autoStart && containerRef.current && !isScanning && !error) {
-      const timer = setTimeout(() => {
-        startScanning();
-      }, 200); // Slightly longer delay to ensure DOM is ready
-      return () => clearTimeout(timer);
+    if (autoStart && !isScanning) {
+      console.log("Auto-start requested, waiting for container...");
+      // Wait for container to be ready, then start
+      const timer1 = setTimeout(() => {
+        if (containerRef.current && !isScanning && !error) {
+          console.log("Container ready, auto-starting scanner...");
+          startScanning();
+        } else {
+          // Retry once more if not ready
+          const timer2 = setTimeout(() => {
+            if (containerRef.current && !isScanning && !error) {
+              console.log("Retry: Container ready, auto-starting scanner...");
+              startScanning();
+            }
+          }, 300);
+          return () => clearTimeout(timer2);
+        }
+      }, 500);
+      return () => clearTimeout(timer1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStart]);
