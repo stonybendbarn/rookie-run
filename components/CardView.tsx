@@ -11,6 +11,7 @@ interface Card {
   event_label: string | null;
   league: string | null;
   source_url: string | null;
+  spoken_intro: string | null;
 }
 
 interface CardViewProps {

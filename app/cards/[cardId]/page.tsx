@@ -11,6 +11,7 @@ type Card = {
   event_label: string | null;
   league: string | null;
   source_url: string | null;
+  spoken_intro: string | null;
 };
 
 export default async function CardPage({
@@ -29,7 +30,8 @@ export default async function CardPage({
       event_year as "rookieYear",
       event_label,
       league,
-      source_url
+      source_url,
+	  spoken_intro
     from cards
     where id = ${cardId}
     limit 1
