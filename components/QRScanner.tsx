@@ -34,13 +34,14 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
 
   useEffect(() => {
     // Auto-start scanning if requested
-    if (autoStart && containerRef.current && !isScanning) {
+    if (autoStart && containerRef.current && !isScanning && !error) {
       const timer = setTimeout(() => {
         startScanning();
       }, 200); // Slightly longer delay to ensure DOM is ready
       return () => clearTimeout(timer);
     }
-  }, [autoStart, isScanning]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   const startScanning = async () => {
     if (!containerRef.current) return;
@@ -148,8 +149,19 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex flex-col items-center justify-center p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+    <div 
+      className="fixed inset-0 z-50 bg-black bg-opacity-75 flex flex-col items-center justify-center p-4"
+      onClick={(e) => {
+        // Close if clicking outside the white box
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg p-6 max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Scan QR Code</h2>
           <button
@@ -183,16 +195,51 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
         <div className="flex gap-3">
           {!isScanning ? (
             <button
-              onClick={startScanning}
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={false}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Button clicked, starting scan...");
+                startScanning();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Button touched, starting scan...");
+                startScanning();
+              }}
+              className="flex-1 bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700 active:bg-blue-800 transition-colors cursor-pointer touch-manipulation select-none text-base font-medium"
+              type="button"
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: '44px', // iOS recommended touch target size
+              }}
             >
               {error ? "Try Again" : "Start Camera"}
             </button>
           ) : (
             <button
-              onClick={stopScanning}
-              className="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                stopScanning();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                stopScanning();
+              }}
+              className="flex-1 bg-red-600 text-white px-4 py-3 rounded hover:bg-red-700 active:bg-red-800 transition-colors cursor-pointer touch-manipulation select-none text-base font-medium"
+              type="button"
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                minHeight: '44px',
+              }}
             >
               Stop Scanning
             </button>
