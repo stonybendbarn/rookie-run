@@ -25,7 +25,7 @@ interface CardViewProps {
  */
 export default function CardView({ card, showScanNext = true }: CardViewProps) {
   return (
-    <main style={{ padding: "2rem", maxWidth: 720, margin: "0 auto" }}>
+    <main style={{ padding: "2rem", maxWidth: 720, margin: "0 auto", backgroundColor: "#fff", color: "#111827",}}>
       <h1 style={{ fontSize: "2rem", marginBottom: "0.25rem" }}>{card.athleteName}</h1>
 
       <p style={{ marginTop: 0, opacity: 0.8 }}>{card.sport}</p>

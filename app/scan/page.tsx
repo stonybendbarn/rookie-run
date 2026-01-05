@@ -109,78 +109,76 @@ export default function ScanPage() {
 
       {/* Result overlay (keeps scanner mounted + camera active) */}
       {scannedCardId ? (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 50,
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 760,
-              background: "white",
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ padding: 16, borderBottom: "1px solid #eee", display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>Scanned:</div>
-                <div style={{ opacity: 0.7, fontSize: 14 }}>{scannedCardId}</div>
-              </div>
-              <button
-                onClick={() => setScannedCardId(null)}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  padding: "10px 12px",
-                  background: "white",
-                  fontWeight: 600,
-                }}
-              >
-                Scan next athlete
-              </button>
-            </div>
+		  <div
+			style={{
+			  position: "fixed",
+			  inset: 0,
+			  background: "rgba(0,0,0,0.6)",
+			  display: "flex",
+			  alignItems: "center",
+			  justifyContent: "center",
+			  padding: 16,
+			  zIndex: 50,
+			}}
+		  >
+			<div
+			  style={{
+				width: "100%",
+				maxWidth: 760,
+				background: "#fff",
+				color: "#111827", // force readable text
+				borderRadius: 12,
+				overflow: "hidden",
+				boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+			  }}
+			>
+			  {/* Content */}
+			  <div style={{ padding: 16 }}>
+				{loading ? (
+				  <div style={{ padding: 24 }}>Loading…</div>
+				) : loadError ? (
+				  <div style={{ padding: 24 }}>
+					<div style={{ fontWeight: 700, marginBottom: 8 }}>Couldn’t load that card</div>
+					<div style={{ opacity: 0.85, marginBottom: 16 }}>{loadError}</div>
+				  </div>
+				) : card ? (
+				  // Wrap to force text color even if CardView has light styles
+				  <div style={{ color: "#111827" }}>
+					<CardView card={card} showScanNext={false} />
+				  </div>
+				) : (
+				  <div style={{ padding: 24 }}>No card found.</div>
+				)}
+			  </div>
 
-            {loading ? (
-              <div style={{ padding: 24 }}>Loading…</div>
-            ) : loadError ? (
-              <div style={{ padding: 24 }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Couldn’t load that card</div>
-                <div style={{ opacity: 0.8, marginBottom: 16 }}>{loadError}</div>
-                <button
-                  onClick={() => setScannedCardId(null)}
-                  style={{
-                    backgroundColor: "#2563eb",
-                    color: "white",
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "0.5rem",
-                    border: "none",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    minHeight: "44px",
-                  }}
-                >
-                  Back to scanner
-                </button>
-              </div>
-            ) : card ? (
-              // Reuse your normal card UI (display-only)
-              <CardView card={card} showScanNext={false} />
-            ) : (
-              <div style={{ padding: 24 }}>No card found.</div>
-            )}
-          </div>
-        </div>
-      ) : null}
+			  {/* Bottom action */}
+			  <div
+				style={{
+				  borderTop: "1px solid #eee",
+				  padding: 16,
+				  background: "#fff",
+				}}
+			  >
+				<button
+				  onClick={() => setScannedCardId(null)}
+				  style={{
+					width: "100%",
+					minHeight: 44,
+					backgroundColor: "#2563eb",
+					color: "white",
+					padding: "12px 14px",
+					borderRadius: 10,
+					border: "none",
+					fontWeight: 700,
+					cursor: "pointer",
+				  }}
+				>
+				  Scan next athlete
+				</button>
+			  </div>
+			</div>
+		  </div>
+		) : null}
     </div>
   );
 }
