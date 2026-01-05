@@ -1,5 +1,5 @@
 // app/api/cards/[cardId]/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import sql from "@/lib/db";
 
 type Card = {
@@ -14,10 +14,10 @@ type Card = {
 };
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { cardId: string } }
+  _req: NextRequest,
+  context: { params: Promise<{ cardId: string }> }
 ) {
-  const cardId = params.cardId;
+  const { cardId } = await context.params;
 
   const rows = await sql`
     select
