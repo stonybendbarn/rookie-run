@@ -2,6 +2,17 @@
 import sql from "@/lib/db";
 import CardView from "@/components/CardView";
 
+type Card = {
+  id: string;
+  sport: string;
+  athleteName: string;
+  athleteBlurb: string | null;
+  rookieYear: number;
+  event_label: string | null;
+  league: string | null;
+  source_url: string | null;
+};
+
 export default async function CardPage({
   params,
 }: {
@@ -24,7 +35,7 @@ export default async function CardPage({
     limit 1
   `;
 
-  const card = rows[0];
+  const card = rows[0] as Card | undefined;
   if (!card) return <div>Card not found</div>;
 
   return <CardView card={card} />;
