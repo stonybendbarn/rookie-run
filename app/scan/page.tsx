@@ -151,7 +151,27 @@ export default function ScanPage() {
 
       {!scannerStarted ? (
         <button
-          onClick={() => setScannerStarted(true)}
+		  onClick={() => {
+			  setScannerStarted(true);
+
+			  // 🔊 Prime TTS for iOS Safari / Chrome / DuckDuckGo
+			  if (typeof window !== "undefined" && window.speechSynthesis) {
+				const synth = window.speechSynthesis;
+
+				// Force voice list to load
+				synth.getVoices();
+
+				// Silent warm-up utterance (unlocks audio on iOS)
+				try {
+				  const u = new SpeechSynthesisUtterance(" ");
+				  u.volume = 0;
+				  synth.speak(u);
+				  synth.cancel();
+				} catch {
+				  // no-op
+				}
+			  }
+			}}
           style={{
             backgroundColor: "#2563eb",
             color: "white",
