@@ -52,6 +52,20 @@ export default function QRScanner({
   // Debounce so a single QR doesn't fire repeatedly while it's in frame
   const lastScanRef = useRef<{ text: string; ts: number } | null>(null);
 
+  // IMPORTANT: avoid stale closures in the decode callback
+  const pausedRef = useRef<boolean>(isPaused);
+  useEffect(() => {
+    pausedRef.current = isPaused;
+  }, [isPaused]);
+
+  const onScanSuccessRef = useRef(onScanSuccess);
+  useEffect(() => {
+    onScanSuccessRef.current = onScanSuccess;
+  }, [onScanSuccess]);
+
+  // Cooldown so "Scan next athlete" doesn't instantly re-scan the same card
+  const cooldownUntilRef = useRef<number>(0);
+
   useEffect(() => {
     return () => {
       // Cleanup on unmount
@@ -62,14 +76,16 @@ export default function QRScanner({
 
   // Auto-start (best effort). Note: iOS may still require a user gesture.
   useEffect(() => {
-    if (autoStart && !isScanning && !error) {
-      const t = setTimeout(() => {
-        if (!isScanning && !error) void startScanning();
-      }, 150);
-      return () => clearTimeout(t);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart]);
+    if (!autoStart) return;
+    if (isScanning) return;
+    if (error) return;
+
+    const t = setTimeout(() => {
+      if (!isScanning && !error) void startScanning();
+    }, 150);
+
+    return () => clearTimeout(t);
+  }, [autoStart, isScanning, error]); // keep dependencies correct
 
   async function stopInternal(silent = false) {
     const scanner = scannerRef.current;
@@ -125,9 +141,13 @@ export default function QRScanner({
         cameraIdOrConfig,
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          if (isPaused) return;
+          // Keep camera running, but ignore events when paused or in cooldown.
+          if (pausedRef.current) return;
 
           const now = Date.now();
+          if (now < cooldownUntilRef.current) return;
+
+          // Additional debounce for same text staying in view
           const last = lastScanRef.current;
           if (last && last.text === decodedText && now - last.ts < 1500) return;
           lastScanRef.current = { text: decodedText, ts: now };
@@ -143,9 +163,12 @@ export default function QRScanner({
             return;
           }
 
+          // Prevent immediate re-trigger if the QR stays in frame.
+          cooldownUntilRef.current = Date.now() + 1200;
+
           // IMPORTANT: do NOT stop the camera here.
           // We keep the stream alive and let the parent pause via isPaused.
-          onScanSuccess(cardId);
+          onScanSuccessRef.current(cardId);
         },
         () => {
           // ignore scan errors; they are frequent
