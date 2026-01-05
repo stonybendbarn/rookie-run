@@ -61,14 +61,14 @@ export default function CardView({ card }: CardViewProps) {
           </p>
         ) : null}
 
-        <details style={{ marginTop: "1.5rem" }}>
+        {/* <details style={{ marginTop: "1.5rem" }}>
           <summary style={{ cursor: "pointer", fontSize: "1.1rem" }}>
             Reveal rookie year
           </summary>
           <p style={{ fontSize: "2.5rem", margin: "0.75rem 0 0" }}>
             {card.rookieYear}
           </p>
-        </details>
+        </details> */}
 
         {card.source_url ? (
           <p style={{ marginTop: "1.5rem", opacity: 0.8 }}>
