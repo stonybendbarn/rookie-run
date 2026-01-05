@@ -9,8 +9,15 @@ export default function ScanPage() {
   const [showScanner, setShowScanner] = useState(false);
 
   const handleScanSuccess = (cardId: string) => {
-    // Navigate to the card page
-    router.push(`/cards/${cardId}`);
+    try {
+      console.log("handleScanSuccess called with cardId:", cardId);
+      // Use window.location for more reliable navigation
+      window.location.href = `/cards/${cardId}`;
+    } catch (error: any) {
+      console.error("Error in handleScanSuccess:", error);
+      // Fallback navigation
+      window.location.href = `/cards/${cardId}`;
+    }
   };
 
   return (

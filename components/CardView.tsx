@@ -24,8 +24,16 @@ export default function CardView({ card }: CardViewProps) {
   const router = useRouter();
 
   const handleScanSuccess = (cardId: string) => {
-    setShowScanner(false);
-    router.push(`/cards/${cardId}`);
+    try {
+      console.log("CardView: handleScanSuccess called with cardId:", cardId);
+      setShowScanner(false);
+      // Use window.location for more reliable navigation
+      window.location.href = `/cards/${cardId}`;
+    } catch (error: any) {
+      console.error("Error in CardView handleScanSuccess:", error);
+      // Fallback navigation
+      window.location.href = `/cards/${cardId}`;
+    }
   };
 
   return (
