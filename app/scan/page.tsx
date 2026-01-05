@@ -45,6 +45,13 @@ export default function ScanPage() {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const endGame = () => {
+	  setScannedCardId(null);
+	  setCard(null);
+	  setLoadError(null);
+	  setLoading(false);
+	  setScannerStarted(false); // unmounts <QRScanner /> -> camera stops
+  };
 
   // When we get a card id, fetch card details (so we don't navigate away and kill the camera)
   useEffect(() => {
@@ -73,7 +80,7 @@ export default function ScanPage() {
 
   return (
     <div style={{ minHeight: "100vh", padding: "2rem", maxWidth: 720, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Rookie Run</h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Rookie Run Scanner</h1>
       <p style={{ marginBottom: "1.5rem", opacity: 0.8 }}>
         Open this page once while playing. It keeps the camera running and lets you scan card after card.
       </p>
@@ -82,11 +89,11 @@ export default function ScanPage() {
         <button
           onClick={() => setScannerStarted(true)}
           style={{
-            background: "#0b0f17",
-			color: "#ffffff",
-			border: "1px solid rgba(255,255,255,0.08)",
+            backgroundColor: "#2563eb",
+            color: "white",
             padding: "1rem 2rem",
-            borderRadius: "0.5rem",            
+            borderRadius: "0.5rem",
+            border: "none",
             fontSize: "1.1rem",
             fontWeight: 500,
             cursor: "pointer",
@@ -113,7 +120,8 @@ export default function ScanPage() {
 			style={{
 			  position: "fixed",
 			  inset: 0,
-			  background: "rgba(0,0,0,0.6)",
+			  background: "rgba(0,0,0,0.85)",
+			  backdropFilter: "blur(2px)",
 			  display: "flex",
 			  alignItems: "center",
 			  justifyContent: "center",
@@ -125,55 +133,74 @@ export default function ScanPage() {
 			  style={{
 				width: "100%",
 				maxWidth: 760,
-				background: "#fff",
-				color: "#111827", // force readable text
-				borderRadius: 12,
+				background: "#0b0f17",
+				color: "#ffffff",
+				borderRadius: 16,
 				overflow: "hidden",
-				boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+				border: "1px solid rgba(255,255,255,0.08)",
+				boxShadow: "0 18px 50px rgba(0,0,0,0.55)",
 			  }}
 			>
 			  {/* Content */}
 			  <div style={{ padding: 16 }}>
 				{loading ? (
-				  <div style={{ padding: 24 }}>Loading…</div>
+				  <div style={{ padding: 24, opacity: 0.9 }}>Loading…</div>
 				) : loadError ? (
 				  <div style={{ padding: 24 }}>
-					<div style={{ fontWeight: 700, marginBottom: 8 }}>Couldn’t load that card</div>
+					<div style={{ fontWeight: 800, marginBottom: 8 }}>Couldn’t load that card</div>
 					<div style={{ opacity: 0.85, marginBottom: 16 }}>{loadError}</div>
 				  </div>
 				) : card ? (
-				  // Wrap to force text color even if CardView has light styles
-				  <div style={{ color: "#111827" }}>
+				  <div style={{ color: "#ffffff" }}>
 					<CardView card={card} showScanNext={false} />
 				  </div>
 				) : (
-				  <div style={{ padding: 24 }}>No card found.</div>
+				  <div style={{ padding: 24, opacity: 0.9 }}>No card found.</div>
 				)}
 			  </div>
 
-			  {/* Bottom action */}
+			  {/* Bottom actions */}
 			  <div
 				style={{
-				  borderTop: "1px solid #eee",
+				  borderTop: "1px solid rgba(255,255,255,0.10)",
 				  padding: 16,
-				  background: "#fff",
+				  display: "flex",
+				  gap: 12,
+				  background: "rgba(255,255,255,0.02)",
 				}}
 			  >
 				<button
 				  onClick={() => setScannedCardId(null)}
 				  style={{
-					width: "100%",
-					minHeight: 44,
+					flex: 1,
+					minHeight: 48,
 					backgroundColor: "#2563eb",
 					color: "white",
 					padding: "12px 14px",
-					borderRadius: 10,
+					borderRadius: 12,
 					border: "none",
-					fontWeight: 700,
+					fontWeight: 800,
 					cursor: "pointer",
 				  }}
 				>
 				  Scan next athlete
+				</button>
+
+				<button
+				  onClick={endGame}
+				  style={{
+					minWidth: 120,
+					minHeight: 48,
+					backgroundColor: "rgba(255,255,255,0.08)",
+					color: "white",
+					padding: "12px 14px",
+					borderRadius: 12,
+					border: "1px solid rgba(255,255,255,0.12)",
+					fontWeight: 800,
+					cursor: "pointer",
+				  }}
+				>
+				  End game
 				</button>
 			  </div>
 			</div>
