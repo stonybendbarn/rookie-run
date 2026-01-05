@@ -16,6 +16,7 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const containerIdRef = useRef(`qr-reader-${Date.now()}-${Math.random()}`);
+  const isNavigatingRef = useRef(false); // Prevent multiple scans
   const router = useRouter();
 
   useEffect(() => {
@@ -97,6 +98,12 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
           qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
+          // Prevent multiple scans
+          if (isNavigatingRef.current) {
+            console.log("Already navigating, ignoring scan");
+            return;
+          }
+          
           console.log("QR code detected:", decodedText);
           // Extract card ID from URL (e.g., /cards/RR-BBK-001)
           const match = decodedText.match(/\/cards\/([^\/]+)/);
@@ -104,23 +111,42 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
             const cardId = match[1];
             console.log("Navigating to card:", cardId);
             
-            // Stop scanner and navigate immediately
-            // Scanner will auto-restart on new page with scan=true param
-            scanner.stop().catch(() => {
-              // Ignore stop errors
-            });
+            isNavigatingRef.current = true;
             
-            // Navigate immediately - smooth transition without page reload
-            try {
+            // Stop scanner properly before navigation
+            scanner.stop().then(() => {
+              try {
+                scanner.clear();
+                scannerRef.current = null;
+                setIsScanning(false);
+                // Navigate after scanner is stopped
+                if (onScanSuccess) {
+                  onScanSuccess(cardId);
+                } else {
+                  router.push(`/cards/${cardId}?scan=true`);
+                }
+              } catch (cleanupError: any) {
+                console.error("Cleanup error:", cleanupError);
+                setIsScanning(false);
+                scannerRef.current = null;
+                // Navigate anyway
+                if (onScanSuccess) {
+                  onScanSuccess(cardId);
+                } else {
+                  router.push(`/cards/${cardId}?scan=true`);
+                }
+              }
+            }).catch((stopError: any) => {
+              console.error("Error stopping scanner:", stopError);
+              setIsScanning(false);
+              scannerRef.current = null;
+              // Navigate anyway - scanner will be cleaned up on unmount
               if (onScanSuccess) {
                 onScanSuccess(cardId);
               } else {
                 router.push(`/cards/${cardId}?scan=true`);
               }
-            } catch (navError: any) {
-              console.error("Navigation error:", navError);
-              router.push(`/cards/${cardId}?scan=true`);
-            }
+            });
           } else {
             console.warn("Invalid QR code format:", decodedText);
             setError(`Invalid QR code format. Expected URL like /cards/RR-BBK-001, got: ${decodedText.substring(0, 50)}...`);
@@ -138,6 +164,7 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
       console.log("Scanner started successfully");
       setIsScanning(true);
       setError(null);
+      isNavigatingRef.current = false; // Reset navigation flag
     } catch (err: any) {
       console.error("Camera error details:", {
         name: err.name,
@@ -168,15 +195,21 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
   };
 
   const stopScanning = async () => {
-    if (scannerRef.current) {
+    if (scannerRef.current && isScanning) {
       try {
         await scannerRef.current.stop();
         scannerRef.current.clear();
         setIsScanning(false);
+        scannerRef.current = null;
         if (onClose) onClose();
       } catch (err) {
         console.error("Error stopping scanner:", err);
+        setIsScanning(false);
+        scannerRef.current = null;
+        if (onClose) onClose();
       }
+    } else if (onClose) {
+      onClose();
     }
   };
 
