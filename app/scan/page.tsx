@@ -269,6 +269,7 @@ export default function ScanPage() {
                 }}
                 style={{
                   flex: 1,
+                  minWidth: 120,
                   minHeight: 48,
                   backgroundColor: "#2563eb",
                   color: "white",
@@ -279,7 +280,7 @@ export default function ScanPage() {
                   cursor: "pointer",
                 }}
               >
-                Scan next athlete
+                Scan Next Athlete
               </button>
 
               <button
@@ -307,7 +308,6 @@ export default function ScanPage() {
               <button
                 onClick={endGame}
                 style={{
-                  minWidth: 120,
                   minHeight: 48,
                   backgroundColor: "rgba(255,255,255,0.08)",
                   color: "white",
