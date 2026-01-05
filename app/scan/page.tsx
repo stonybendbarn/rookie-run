@@ -152,7 +152,7 @@ export default function ScanPage() {
 				  </div>
 				) : card ? (
 				  <div style={{ color: "#ffffff" }}>
-					<CardView card={card} showScanNext={false} />
+					<CardView card={card} showScanNext={false} theme="dark" />
 				  </div>
 				) : (
 				  <div style={{ padding: 24, opacity: 0.9 }}>No card found.</div>
