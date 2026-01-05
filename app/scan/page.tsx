@@ -80,7 +80,7 @@ export default function ScanPage() {
 
   return (
     <div style={{ minHeight: "100vh", padding: "2rem", maxWidth: 720, margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Rookie Run Scanner</h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>Rookie Run</h1>
       <p style={{ marginBottom: "1.5rem", opacity: 0.8 }}>
         Open this page once while playing. It keeps the camera running and lets you scan card after card.
       </p>
