@@ -44,18 +44,25 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
   }, [autoStart]);
 
   const startScanning = async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      console.error("Container ref not available");
+      setError("Scanner container not ready. Please refresh the page.");
+      return;
+    }
 
+    console.log("Starting camera scan...");
+    
     // Clear any previous error
     setError(null);
 
     // Clean up any existing scanner instance
     if (scannerRef.current) {
       try {
+        console.log("Cleaning up existing scanner...");
         await scannerRef.current.stop();
         scannerRef.current.clear();
       } catch (e) {
-        // Ignore cleanup errors
+        console.log("Cleanup error (ignored):", e);
       }
       scannerRef.current = null;
     }
@@ -68,17 +75,21 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
       let cameraIdOrConfig: string | { facingMode: string } = { facingMode: "environment" };
       
       try {
+        console.log("Enumerating cameras...");
         const cameras = await Html5Qrcode.getCameras();
+        console.log("Found cameras:", cameras);
         if (cameras && cameras.length > 0) {
           // Prefer back camera, fallback to first available
           const backCamera = cameras.find((cam) => cam.label.toLowerCase().includes("back"));
           cameraIdOrConfig = backCamera?.id || cameras[0].id;
+          console.log("Using camera:", cameraIdOrConfig);
         }
-      } catch (e) {
+      } catch (e: any) {
         // If we can't enumerate cameras, use facingMode
-        console.log("Could not enumerate cameras, using facingMode");
+        console.log("Could not enumerate cameras, using facingMode:", e.message || e);
       }
 
+      console.log("Starting scanner with config:", cameraIdOrConfig);
       await scanner.start(
         cameraIdOrConfig,
         {
@@ -86,10 +97,12 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
           qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
+          console.log("QR code detected:", decodedText);
           // Extract card ID from URL (e.g., /cards/RR-BBK-001)
           const match = decodedText.match(/\/cards\/([^\/]+)/);
           if (match && match[1]) {
             const cardId = match[1];
+            console.log("Navigating to card:", cardId);
             
             // Stop scanning
             scanner.stop().then(() => {
@@ -104,18 +117,30 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
               }
             });
           } else {
+            console.warn("Invalid QR code format:", decodedText);
             setError("Invalid QR code format");
           }
         },
         (errorMessage) => {
           // Ignore scanning errors (they're frequent during scanning)
+          // Only log if it's not a common scanning error
+          if (!errorMessage.includes("NotFoundException") && !errorMessage.includes("No MultiFormat Readers")) {
+            console.log("Scanning error (ignored):", errorMessage);
+          }
         }
       );
 
+      console.log("Scanner started successfully");
       setIsScanning(true);
       setError(null);
     } catch (err: any) {
-      console.error("Camera error:", err);
+      console.error("Camera error details:", {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        error: err
+      });
+      
       let errorMsg = "Failed to start camera";
       
       if (err.message) {
@@ -128,6 +153,8 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
         errorMsg = "Camera is already in use by another application.";
       } else if (err.name === "OverconstrainedError" || err.name === "ConstraintNotSatisfiedError") {
         errorMsg = "Camera doesn't support required settings.";
+      } else if (err.name) {
+        errorMsg = `Camera error: ${err.name} - ${err.message || "Unknown error"}`;
       }
       
       setError(errorMsg);
@@ -195,26 +222,17 @@ export default function QRScanner({ onScanSuccess, onClose, autoStart = false }:
         <div className="flex gap-3">
           {!isScanning ? (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Button clicked, starting scan...");
-                startScanning();
-              }}
-              onTouchStart={(e) => {
-                e.stopPropagation();
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Button touched, starting scan...");
+              onClick={() => {
+                console.log("Button onClick triggered");
                 startScanning();
               }}
               className="flex-1 bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700 active:bg-blue-800 transition-colors cursor-pointer touch-manipulation select-none text-base font-medium"
               type="button"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
-                minHeight: '44px', // iOS recommended touch target size
+                minHeight: '44px',
+                WebkitAppearance: 'none',
+                appearance: 'none',
               }}
             >
               {error ? "Try Again" : "Start Camera"}
