@@ -70,28 +70,65 @@ function padToSize<T>(items: T[], size: number, fill: T): T[] {
   return items.concat(Array.from({ length: size - items.length }, () => fill));
 }
 
+function parseIdsParam(idsRaw?: string): string[] | null {
+  if (!idsRaw) return null;
+  const ids = idsRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return ids.length ? ids : null;
+}
+
 export default async function PrintDuplexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; ids?: string }>;
 }) {
-  const { page: pageRaw } = await searchParams;
+  const sp = await searchParams;
 
-  const page = Math.max(1, Number(pageRaw ?? "1") || 1);
+  const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const offset = (page - 1) * LIMIT;
 
-  // Pull the same 12 cards once so fronts + backs stay aligned
-  const backRows = (await sql`
-    select
-      id,
-      sport,
-      event_year as "eventYear",
-      athlete_name as "playerName"
-    from cards
-    where deck = 'Rookie Run'
-    order by id asc
-    limit ${LIMIT} offset ${offset}
-  `) as BackCard[];
+  const requestedIds = parseIdsParam(sp.ids);
+
+  let backRows: BackCard[] = [];
+
+  if (requestedIds) {
+    // Take the 12-card slice for this page from the requested list
+    const sliceIds = requestedIds.slice(offset, offset + LIMIT);
+
+    if (sliceIds.length > 0) {
+      // Query only those IDs
+      const rows = (await sql`
+        select
+          id,
+          sport,
+          event_year as "eventYear",
+          athlete_name as "playerName"
+        from cards
+        where id = ANY(${sliceIds})
+      `) as BackCard[];
+
+      // Preserve the exact slice order (SQL doesn't guarantee order for ANY())
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      backRows = sliceIds.map((id) => byId.get(id)).filter(Boolean) as BackCard[];
+    } else {
+      backRows = [];
+    }
+  } else {
+    // Original behavior: 12 cards per page in id order
+    backRows = (await sql`
+      select
+        id,
+        sport,
+        event_year as "eventYear",
+        athlete_name as "playerName"
+      from cards
+      where deck = 'Rookie Run'
+      order by id asc
+      limit ${LIMIT} offset ${offset}
+    `) as BackCard[];
+  }
 
   const baseUrl = getBaseUrl();
 
@@ -107,7 +144,6 @@ export default async function PrintDuplexPage({
     })
   );
 
-  // ✅ KEY FIX:
   // Build a full 12-slot grid INCLUDING empties, then mirror rows.
   const backGridPadded = padToSize<BackCard | null>(backRows, LIMIT, null);
   const backGridDuplexSafe = mirrorForDuplex(backGridPadded, COLS);
