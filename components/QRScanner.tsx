@@ -2,324 +2,230 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { useRouter } from "next/navigation";
 
 interface QRScannerProps {
-  onScanSuccess?: (cardId: string) => void;
+  /** Called when we successfully extract a card id from a QR code. */
+  onScanSuccess: (cardId: string) => void;
+  /** Optional close handler (used if you want a dismiss button). */
   onClose?: () => void;
+  /** If true, attempts to start the camera automatically. */
   autoStart?: boolean;
+  /**
+   * When true, the camera stays running but scan results are ignored.
+   * (Perfect for showing a "card overlay" while keeping the stream alive.)
+   */
+  isPaused?: boolean;
 }
 
-export default function QRScanner({ onScanSuccess, onClose, autoStart = false }: QRScannerProps) {
+function extractCardId(decodedText: string): string | null {
+  // Supports:
+  // 1) Full URL: https://rookie-run.vercel.app/cards/RR-MLB-002
+  // 2) Path: /cards/RR-MLB-002
+  // 3) Raw id: RR-MLB-002
+
+  const raw = decodedText.trim();
+  if (!raw) return null;
+
+  // Full URL or relative path
+  const pathMatch = raw.match(/\/cards\/([^\/?#]+)/i);
+  if (pathMatch?.[1]) return pathMatch[1].toUpperCase();
+
+  // Raw id
+  if (/^[A-Z]{2,5}-[A-Z]{2,5}-\d{3}$/i.test(raw)) return raw.toUpperCase();
+
+  return null;
+}
+
+export default function QRScanner({
+  onScanSuccess,
+  onClose,
+  autoStart = false,
+  isPaused = false,
+}: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const containerIdRef = useRef(`qr-reader-${Date.now()}-${Math.random()}`);
-  const isNavigatingRef = useRef(false); // Prevent multiple scans
-  const router = useRouter();
+
+  // Debounce so a single QR doesn't fire repeatedly while it's in frame
+  const lastScanRef = useRef<{ text: string; ts: number } | null>(null);
 
   useEffect(() => {
     return () => {
       // Cleanup on unmount
-      if (scannerRef.current && isScanning) {
-        scannerRef.current
-          .stop()
-          .then(() => {
-            scannerRef.current?.clear();
-          })
-          .catch(() => {});
-      }
+      void stopInternal(true);
     };
-  }, [isScanning]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Auto-start when component mounts with autoStart=true
+  // Auto-start (best effort). Note: iOS may still require a user gesture.
   useEffect(() => {
-    if (autoStart && !isScanning) {
-      console.log("Auto-start requested, waiting for container...");
-      // Wait for container to be ready, then start
-      const timer1 = setTimeout(() => {
-        if (containerRef.current && !isScanning && !error) {
-          console.log("Container ready, auto-starting scanner...");
-          startScanning();
-        } else {
-          // Retry once more if not ready
-          const timer2 = setTimeout(() => {
-            if (containerRef.current && !isScanning && !error) {
-              console.log("Retry: Container ready, auto-starting scanner...");
-              startScanning();
-            }
-          }, 300);
-          return () => clearTimeout(timer2);
-        }
-      }, 500);
-      return () => clearTimeout(timer1);
+    if (autoStart && !isScanning && !error) {
+      const t = setTimeout(() => {
+        if (!isScanning && !error) void startScanning();
+      }, 150);
+      return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStart]);
 
-  const startScanning = async () => {
+  async function stopInternal(silent = false) {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+
+    try {
+      if (isScanning) await scanner.stop();
+    } catch (e) {
+      if (!silent) console.error("Error stopping scanner:", e);
+    }
+
+    try {
+      scanner.clear();
+    } catch (e) {
+      if (!silent) console.error("Error clearing scanner:", e);
+    }
+
+    scannerRef.current = null;
+    setIsScanning(false);
+  }
+
+  async function startScanning() {
     if (!containerRef.current) {
-      console.error("Container ref not available");
-      setError("Scanner container not ready. Please refresh the page.");
+      setError("Scanner container not ready. Please refresh.");
       return;
     }
 
-    console.log("Starting camera scan...");
-    
-    // Clear any previous error
     setError(null);
 
-    // Clean up any existing scanner instance
-    if (scannerRef.current) {
-      try {
-        console.log("Cleaning up existing scanner...");
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-      } catch (e) {
-        console.log("Cleanup error (ignored):", e);
-      }
-      scannerRef.current = null;
-    }
+    // If we already have a scanner running, don't restart.
+    if (scannerRef.current && isScanning) return;
+
+    // Ensure a clean slate
+    await stopInternal(true);
 
     try {
       const scanner = new Html5Qrcode(containerIdRef.current);
       scannerRef.current = scanner;
 
-      // Try to get available cameras first for better error messages
+      // Prefer back camera if possible
       let cameraIdOrConfig: string | { facingMode: string } = { facingMode: "environment" };
-      
       try {
-        console.log("Enumerating cameras...");
         const cameras = await Html5Qrcode.getCameras();
-        console.log("Found cameras:", cameras);
-        if (cameras && cameras.length > 0) {
-          // Prefer back camera, fallback to first available
-          const backCamera = cameras.find((cam) => cam.label.toLowerCase().includes("back"));
-          cameraIdOrConfig = backCamera?.id || cameras[0].id;
-          console.log("Using camera:", cameraIdOrConfig);
+        if (cameras?.length) {
+          const back = cameras.find((c) => c.label.toLowerCase().includes("back"));
+          cameraIdOrConfig = back?.id || cameras[0].id;
         }
-      } catch (e: any) {
-        // If we can't enumerate cameras, use facingMode
-        console.log("Could not enumerate cameras, using facingMode:", e.message || e);
+      } catch {
+        // Ignore enumeration failure; facingMode is fine.
       }
 
-      console.log("Starting scanner with config:", cameraIdOrConfig);
       await scanner.start(
         cameraIdOrConfig,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          // Prevent multiple scans
-          if (isNavigatingRef.current) {
-            console.log("Already navigating, ignoring scan");
+          if (isPaused) return;
+
+          const now = Date.now();
+          const last = lastScanRef.current;
+          if (last && last.text === decodedText && now - last.ts < 1500) return;
+          lastScanRef.current = { text: decodedText, ts: now };
+
+          const cardId = extractCardId(decodedText);
+          if (!cardId) {
+            setError(
+              `Invalid QR code. Expected something like /cards/RR-MLB-002 (or RR-MLB-002), got: ${decodedText.substring(
+                0,
+                80
+              )}...`
+            );
             return;
           }
-          
-          console.log("QR code detected:", decodedText);
-          // Extract card ID from URL (e.g., /cards/RR-BBK-001)
-          const match = decodedText.match(/\/cards\/([^\/]+)/);
-          if (match && match[1]) {
-            const cardId = match[1];
-            console.log("Navigating to card:", cardId);
-            
-            isNavigatingRef.current = true;
-            
-            // Stop scanner properly before navigation
-            scanner.stop().then(() => {
-              try {
-                scanner.clear();
-                scannerRef.current = null;
-                setIsScanning(false);
-                // Navigate after scanner is stopped
-                if (onScanSuccess) {
-                  onScanSuccess(cardId);
-                } else {
-                  router.push(`/cards/${cardId}?scan=true`);
-                }
-              } catch (cleanupError: any) {
-                console.error("Cleanup error:", cleanupError);
-                setIsScanning(false);
-                scannerRef.current = null;
-                // Navigate anyway
-                if (onScanSuccess) {
-                  onScanSuccess(cardId);
-                } else {
-                  router.push(`/cards/${cardId}?scan=true`);
-                }
-              }
-            }).catch((stopError: any) => {
-              console.error("Error stopping scanner:", stopError);
-              setIsScanning(false);
-              scannerRef.current = null;
-              // Navigate anyway - scanner will be cleaned up on unmount
-              if (onScanSuccess) {
-                onScanSuccess(cardId);
-              } else {
-                router.push(`/cards/${cardId}?scan=true`);
-              }
-            });
-          } else {
-            console.warn("Invalid QR code format:", decodedText);
-            setError(`Invalid QR code format. Expected URL like /cards/RR-BBK-001, got: ${decodedText.substring(0, 50)}...`);
-          }
+
+          // IMPORTANT: do NOT stop the camera here.
+          // We keep the stream alive and let the parent pause via isPaused.
+          onScanSuccess(cardId);
         },
-        (errorMessage) => {
-          // Ignore scanning errors (they're frequent during scanning)
-          // Only log if it's not a common scanning error
-          if (!errorMessage.includes("NotFoundException") && !errorMessage.includes("No MultiFormat Readers")) {
-            console.log("Scanning error (ignored):", errorMessage);
-          }
+        () => {
+          // ignore scan errors; they are frequent
         }
       );
 
-      console.log("Scanner started successfully");
       setIsScanning(true);
       setError(null);
-      isNavigatingRef.current = false; // Reset navigation flag
     } catch (err: any) {
-      console.error("Camera error details:", {
-        name: err.name,
-        message: err.message,
-        stack: err.stack,
-        error: err
-      });
-      
-      let errorMsg = "Failed to start camera";
-      
-      if (err.message) {
+      let errorMsg = "Failed to start camera.";
+      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+        errorMsg = "Camera permission denied. Allow camera access in your browser settings.";
+      } else if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
+        errorMsg = "No camera found on this device.";
+      } else if (err?.name === "NotReadableError" || err?.name === "TrackStartError") {
+        errorMsg = "Camera is already in use by another app.";
+      } else if (err?.message) {
         errorMsg = err.message;
-      } else if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        errorMsg = "Camera permission denied. Please allow camera access in your browser settings.";
-      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-        errorMsg = "No camera found. Please check your device has a camera.";
-      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
-        errorMsg = "Camera is already in use by another application.";
-      } else if (err.name === "OverconstrainedError" || err.name === "ConstraintNotSatisfiedError") {
-        errorMsg = "Camera doesn't support required settings.";
-      } else if (err.name) {
-        errorMsg = `Camera error: ${err.name} - ${err.message || "Unknown error"}`;
       }
-      
       setError(errorMsg);
       setIsScanning(false);
+      scannerRef.current = null;
     }
-  };
+  }
 
-  const stopScanning = async () => {
-    if (scannerRef.current && isScanning) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-        setIsScanning(false);
-        scannerRef.current = null;
-        if (onClose) onClose();
-      } catch (err) {
-        console.error("Error stopping scanner:", err);
-        setIsScanning(false);
-        scannerRef.current = null;
-        if (onClose) onClose();
-      }
-    } else if (onClose) {
-      onClose();
-    }
-  };
+  async function stopScanning() {
+    await stopInternal(false);
+    onClose?.();
+  }
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black bg-opacity-75 flex flex-col items-center justify-center p-4"
-      onClick={(e) => {
-        // Close if clicking outside the white box
-        if (e.target === e.currentTarget && onClose) {
-          onClose();
-        }
-      }}
-    >
-      <div 
-        className="bg-white rounded-lg p-6 max-w-md w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Scan QR Code</h2>
+    <div className="bg-white rounded-lg p-4 border border-gray-200">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold">Scanner</h2>
+        {onClose ? (
           <button
-            onClick={stopScanning}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            onClick={() => void stopScanning()}
+            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
             aria-label="Close scanner"
+            type="button"
           >
             ×
           </button>
-        </div>
-
-        <div
-          id={containerIdRef.current}
-          ref={containerRef}
-          className="w-full mb-4"
-          style={{ minHeight: "300px" }}
-        />
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            <p className="font-semibold mb-1">Error:</p>
-            <p className="text-sm">{error}</p>
-            {error.includes("permission") && (
-              <p className="text-xs mt-2 opacity-75">
-                Try refreshing the page and allowing camera access when prompted.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-3">
-          {!isScanning ? (
-            <button
-              onClick={() => {
-                console.log("Button onClick triggered");
-                startScanning();
-              }}
-              className="flex-1 bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700 active:bg-blue-800 transition-colors cursor-pointer touch-manipulation select-none text-base font-medium"
-              type="button"
-              style={{ 
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: '44px',
-                WebkitAppearance: 'none',
-                appearance: 'none',
-              }}
-            >
-              {error ? "Try Again" : "Start Camera"}
-            </button>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                stopScanning();
-              }}
-              onTouchStart={(e) => {
-                e.stopPropagation();
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                stopScanning();
-              }}
-              className="flex-1 bg-red-600 text-white px-4 py-3 rounded hover:bg-red-700 active:bg-red-800 transition-colors cursor-pointer touch-manipulation select-none text-base font-medium"
-              type="button"
-              style={{ 
-                WebkitTapHighlightColor: 'transparent',
-                minHeight: '44px',
-              }}
-            >
-              Stop Scanning
-            </button>
-          )}
-        </div>
-
-        <p className="text-sm text-gray-600 mt-4 text-center">
-          Point your camera at a QR code to scan
-        </p>
+        ) : null}
       </div>
+
+      <div id={containerIdRef.current} ref={containerRef} className="w-full" style={{ minHeight: 320 }} />
+
+      {error ? (
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 rounded">
+          <div className="font-semibold">Error</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex gap-3">
+        {!isScanning ? (
+          <button
+            onClick={() => void startScanning()}
+            className="flex-1 bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700 active:bg-blue-800 transition-colors"
+            type="button"
+            style={{ minHeight: 44 }}
+          >
+            {error ? "Try Again" : "Start Camera"}
+          </button>
+        ) : (
+          <button
+            onClick={() => void stopScanning()}
+            className="flex-1 bg-gray-900 text-white px-4 py-3 rounded hover:bg-black transition-colors"
+            type="button"
+            style={{ minHeight: 44 }}
+          >
+            Stop Camera
+          </button>
+        )}
+      </div>
+
+      <p className="text-sm text-gray-600 mt-3">
+        {isPaused ? "Paused — close the card to scan the next one." : "Point your camera at a Rookie Run QR code."}
+      </p>
     </div>
   );
 }
