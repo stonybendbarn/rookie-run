@@ -77,21 +77,6 @@ export default function RulesPage() {
         fontSize: "1.05rem",
       }}
     >
-      <header style={{ marginBottom: "1rem" }}>
-        <h1
-          style={{
-            fontSize: "2rem",
-            margin: "0 0 0.35rem",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Rookie Run — Rules
-        </h1>
-        <p style={{ margin: 0, opacity: 0.9 }}>
-          Fast timeline game with challenges. No walls of text. 🙂
-        </p>
-      </header>
-
       {/* Mobile-friendly quick nav */}
       <details
         open
@@ -366,11 +351,6 @@ export default function RulesPage() {
           place a card on your own turn.
         </p>
       </Section>
-
-      <footer style={{ marginTop: "1.5rem", opacity: 0.75, fontSize: "0.95rem" }}>
-        Tip: this page is designed to scroll well on phones — big tap targets,
-        short blocks, and no giant paragraphs.
-      </footer>
     </main>
   );
 }
