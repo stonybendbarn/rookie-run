@@ -131,12 +131,13 @@ export default function RulesPage() {
         <p style={{ margin: "0.75rem 0 0" }}>
           <strong>You may only win on your own turn.</strong> Completing your
           final sport during a challenge does <strong>not</strong> win the game.
+		  An instant win card may not be used as the final placement required to win the game.
         </p>
       </Section>
 
       <Section id="setup" title="Setup">
         <ul style={ulStyle}>
-          <li style={liStyle}>Shuffle all cards into a face-down draw pile.</li>
+          <li style={liStyle}>Shuffle all cards into a face-down draw pile (QR code facing up).</li>
           <li style={liStyle}>Create a discard pile.</li>
           <li style={liStyle}>
             All players start with no cards and no timeline.
@@ -233,14 +234,14 @@ export default function RulesPage() {
           </li>
           <li style={liStyle}>
             The number of challenges is limited by the number of available
-            windows.
+            windows and players.
           </li>
         </ul>
       </Section>
 
       <Section id="resolve" title="Resolving Challenges">
         <p style={{ margin: 0 }}>
-          Reveal the rookie year, then apply the correct outcome:
+          Reveal the rookie year, then play proceeds accordingly:
         </p>
 
         <div style={{ marginTop: "0.85rem", display: "grid", gap: "0.65rem" }}>
@@ -320,9 +321,7 @@ export default function RulesPage() {
               <Pill>Hole in One</Pill>
             </div>
             <div>
-              May be placed anywhere, count as that sport, and win immediately
-              if played successfully on your turn and you already have all
-              sports.
+              May be placed anywhere and count as that sport.
             </div>
           </div>
 
