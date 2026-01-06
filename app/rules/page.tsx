@@ -326,21 +326,26 @@ export default function RulesPage() {
           </div>
 
           <div
-            style={{
-              padding: "0.85rem",
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.10)",
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Lose Your Turn
-            </div>
-            <div>
-              Immediately discard this card and end your current turn. No
-              timeline card is placed and you cannot win this turn.
-            </div>
-          </div>
+			  style={{
+				padding: "0.85rem",
+				borderRadius: 12,
+				background: "rgba(255,255,255,0.04)",
+				border: "1px solid rgba(255,255,255,0.10)",
+			  }}
+			>
+			  <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+				Lose Your Turn Cards
+			  </div>
+			  <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
+				<Pill>Technical Foul</Pill>{" "}
+				<Pill>Penalty Box</Pill>{" "}
+				<Pill>Failed to Qualify</Pill>
+			  </div>
+			  <div>
+				Immediately discard this card and end your current turn. No
+				timeline card is placed and you cannot win this turn.
+			  </div>
+			</div>
         </div>
       </Section>
 
