@@ -318,6 +318,36 @@ export default async function PrintDuplexPage({
           right: ${MARGIN_X}in;
           height: 1px;
         }
+		
+		/* Margin cut lines (outer trim box) */
+		.cutMarginTop {
+		  left: ${MARGIN_X}in;
+		  right: ${MARGIN_X}in;
+		  top: ${MARGIN_Y}in;
+		  height: 1px;
+		}
+
+		.cutMarginBottom {
+		  left: ${MARGIN_X}in;
+		  right: ${MARGIN_X}in;
+		  bottom: ${MARGIN_Y}in;
+		  height: 1px;
+		}
+
+		.cutMarginLeft {
+		  top: ${MARGIN_Y}in;
+		  bottom: ${MARGIN_Y}in;
+		  left: ${MARGIN_X}in;
+		  width: 1px;
+		}
+
+		.cutMarginRight {
+		  top: ${MARGIN_Y}in;
+		  bottom: ${MARGIN_Y}in;
+		  right: ${MARGIN_X}in;
+		  width: 1px;
+		}
+
 
         .sheetBreak {
           page-break-after: always;
