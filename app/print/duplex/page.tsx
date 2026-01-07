@@ -33,10 +33,18 @@ const MARGIN_Y = (PAGE_H - USED_H) / 2; // 0.125
 const QR_SIZE = 180;
 
 function getBaseUrl() {
-  if (process.env.BASE_URL) return process.env.BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // 1) Explicit production base (QR-safe)
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  // 2) Vercel preview deployments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // 3) Local development fallback
   return "http://localhost:3000";
 }
+
 
 /** Normalize sport label for display */
 function sportLabel(sport: string) {
@@ -155,7 +163,7 @@ export default async function PrintDuplexPage({
 
   const backs = mirrorForDuplex(padded, COLS);
 
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl().replace(/\/$/, "");
 
   // Fronts need sport label + QR (no ID)
   const fronts = await Promise.all(
