@@ -1,3 +1,5 @@
+import React from "react";
+
 const Section = ({
   id,
   title,
@@ -62,7 +64,7 @@ export default function RulesPage() {
     { id: "timelines", label: "Timelines" },
     { id: "challenges", label: "Challenges" },
     { id: "resolve", label: "Resolving" },
-    { id: "special", label: "Special Cards" },
+    { id: "wild", label: "Wild Cards" },
     { id: "winning", label: "Winning" },
   ];
 
@@ -131,17 +133,17 @@ export default function RulesPage() {
         <p style={{ margin: "0.75rem 0 0" }}>
           <strong>You may only win on your own turn.</strong> Completing your
           final sport during a challenge does <strong>not</strong> win the game.
-		  An instant win card may not be used as the final placement required to win the game.
+          A Wild Card may not be used as the final placement required to win the
+          game.
         </p>
       </Section>
 
       <Section id="setup" title="Setup">
         <ul style={ulStyle}>
-          <li style={liStyle}>Shuffle all cards into a face-down draw pile (QR code facing up).</li>
-          <li style={liStyle}>Create a discard pile.</li>
           <li style={liStyle}>
-            All players start with no cards and no timeline.
+            Shuffle each sport into its own face-down deck (QR code facing up).
           </li>
+          <li style={liStyle}>All players start with no cards and no timeline.</li>
         </ul>
       </Section>
 
@@ -153,16 +155,40 @@ export default function RulesPage() {
 
       <Section id="turn" title="Your Turn">
         <ol style={{ margin: 0, paddingLeft: "1.25rem" }}>
-          <li style={liStyle}>Draw one card and scan it.</li>
+          <li style={liStyle}>
+            Choose a sport deck, draw one card, and scan it.
+          </li>
           <li style={liStyle}>
             Announce where you believe it belongs in your timeline.
             <div style={{ marginTop: "0.35rem", opacity: 0.95 }}>
-              <Pill>First card: declare a decade</Pill>
+              <Pill>
+                First card: Declare a decade or 10-year window (e.g., 2000s or
+                1996-2005)
+              </Pill>
             </div>
           </li>
           <li style={liStyle}>If correct, place the card.</li>
           <li style={liStyle}>If incorrect, discard it.</li>
         </ol>
+
+        <div
+          style={{
+            marginTop: "0.85rem",
+            padding: "0.75rem",
+            borderRadius: 12,
+            background: "rgba(0,0,0,0.25)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: "0.35rem" }}>
+            First card rule
+          </div>
+          <div style={{ opacity: 0.95 }}>
+            Your first placed card must be within your declared decade or 10-year
+            window. <strong>No challenges are allowed</strong> on a player’s
+            first card.
+          </div>
+        </div>
       </Section>
 
       <Section id="timelines" title="Timelines">
@@ -223,7 +249,12 @@ export default function RulesPage() {
 
       <Section id="challenges" title="Challenges">
         <ul style={ulStyle}>
-          <li style={liStyle}>Only players with an active timeline may challenge.</li>
+          <li style={liStyle}>
+            Only players with an active timeline may challenge.
+          </li>
+          <li style={liStyle}>
+            No challenges are allowed on a player’s first card.
+          </li>
           <li style={liStyle}>
             Challenges start to the left of the drawing player and proceed
             clockwise.
@@ -240,9 +271,7 @@ export default function RulesPage() {
       </Section>
 
       <Section id="resolve" title="Resolving Challenges">
-        <p style={{ margin: 0 }}>
-          Reveal the rookie year, then play proceeds accordingly:
-        </p>
+        <p style={{ margin: 0 }}>Reveal the rookie year, then play proceeds accordingly:</p>
 
         <div style={{ marginTop: "0.85rem", display: "grid", gap: "0.65rem" }}>
           <div
@@ -274,11 +303,7 @@ export default function RulesPage() {
               Drawing player incorrect
             </div>
             <div>
-              The first challenger (clockwise from the drawing player) whose
-              selected window contains the correct year wins, takes the drawn
-              card, and places it in their timeline. The drawing player loses
-              no cards. All losing challengers lose one card chosen by the
-              winner.
+              The first challenger (clockwise) whose window contains the correct year is the winning challenger and takes/places the drawn card in their timeline. The drawing player loses no cards. Correct challengers (windows that contain the year) lose nothing. Incorrect challengers lose one timeline card chosen by the winning challenger.
             </div>
           </div>
 
@@ -301,31 +326,14 @@ export default function RulesPage() {
         </div>
       </Section>
 
-      <Section id="special" title="Special Cards">
-        <div style={{ display: "grid", gap: "0.65rem" }}>
-          <div
-            style={{
-              padding: "0.85rem",
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.10)",
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Instant Win Cards
-            </div>
-            <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
-              <Pill>Walk-Off</Pill>{" "}
-              <Pill>Game Set Match</Pill>{" "}
-              <Pill>Hat Trick</Pill>{" "}
-              <Pill>Hole in One</Pill>
-            </div>
-            <div>
-              May be placed anywhere and count as that sport.
-            </div>
-          </div>
+      <Section id="wild" title="Wild Cards">
+		  <p style={{ margin: "0 0 0.75rem", opacity: 0.95 }}>
+			Wild Cards represent positive and negative moments across sports that can
+			affect your turn, your timeline, and your opponents’ timelines.
+		  </p>
 
-          <div
+		  <div style={{ display: "grid", gap: "0.65rem" }}>
+			<div
 			  style={{
 				padding: "0.85rem",
 				borderRadius: 12,
@@ -334,7 +342,27 @@ export default function RulesPage() {
 			  }}
 			>
 			  <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-				Lose Your Turn Cards
+				Example
+			  </div>
+			  <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
+				<Pill>Walk-Off</Pill>{" "}
+				<Pill>Game Set Match</Pill>{" "}
+				<Pill>Hat Trick</Pill>{" "}
+				<Pill>Hole in One</Pill>
+			  </div>
+			  <div>May be placed anywhere and count as that sport. You cannot win on this turn.</div>
+			</div>
+
+			<div
+			  style={{
+				padding: "0.85rem",
+				borderRadius: 12,
+				background: "rgba(255,255,255,0.04)",
+				border: "1px solid rgba(255,255,255,0.10)",
+			  }}
+			>
+			  <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+				Example
 			  </div>
 			  <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
 				<Pill>Technical Foul</Pill>{" "}
@@ -343,16 +371,15 @@ export default function RulesPage() {
 			  </div>
 			  <div>
 				Immediately discard this card and end your current turn. No
-				timeline card is placed and you cannot win this turn.
+				timeline card is placed, and you cannot win this turn.
 			  </div>
 			</div>
-        </div>
-      </Section>
-
+		  </div>
+		</Section>
       <Section id="winning" title="Winning">
         <p style={{ margin: 0 }}>
           You win when your timeline contains all sports and you successfully
-          place a card on your own turn.
+          place a normal timeline card on your own turn.
         </p>
       </Section>
     </main>
