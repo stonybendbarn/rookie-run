@@ -378,6 +378,10 @@ export default async function PrintDuplexPage({
         <div className="cut cutV" style={{ left: `${cutV2}in` }} />
         <div className="cut cutH" style={{ top: `${cutH1}in` }} />
         <div className="cut cutH" style={{ top: `${cutH2}in` }} />
+		<div className="cut cutMarginTop" />
+		<div className="cut cutMarginBottom" />
+		<div className="cut cutMarginLeft" />
+		<div className="cut cutMarginRight" />
       </div>
 
       {/* PAGE 2: BACKS */}
@@ -406,6 +410,12 @@ export default async function PrintDuplexPage({
         <div className="cut cutV" style={{ left: `${cutV2}in` }} />
         <div className="cut cutH" style={{ top: `${cutH1}in` }} />
         <div className="cut cutH" style={{ top: `${cutH2}in` }} />
+		{/* Outer margin cut lines */}
+		<div className="cut cutMarginTop" />
+		<div className="cut cutMarginBottom" />
+		<div className="cut cutMarginLeft" />
+		<div className="cut cutMarginRight" />
+
       </div>
     </div>
   );
