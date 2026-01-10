@@ -28,13 +28,13 @@ const PADDING_IN = 0.3;
 const QR_SIZE_PX = 260;
 
 function getBaseUrl() {
-  if (process.env.BASE_URL) return process.env.BASE_URL;
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
 }
 
 export default async function PrintStartDuplexPage() {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl().replace(/\/$/, "");
 
   const startUrl = `${baseUrl}/scan`;
   const rulesUrl = `${baseUrl}/rules`;

@@ -18,7 +18,7 @@ const CARD_W = 2.5; // inches (width)
 const CARD_H = 3.5; // inches (height)
 
 // Gutters for cutting
-const GUTTER = 0.125; // 1/8 inch
+const GUTTER = 0.0; // 1/8 inch
 
 // Letter portrait
 const PAGE_W = 8.5;
