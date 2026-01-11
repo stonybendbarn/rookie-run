@@ -15,17 +15,17 @@ export const runtime = "nodejs";
 const COUNT = 2;
 
 // Card size
-const CARD_W_IN = 3.0;
-const CARD_H_IN = 5.0;
+const CARD_W_IN = 2.5;
+const CARD_H_IN = 3.5;
 
 // Vertical gap between cards
 const GAP_IN = 0.2;
 
 // Padding inside card
-const PADDING_IN = 0.3;
+const PADDING_IN = 0.15;
 
 // QR size
-const QR_SIZE_PX = 260;
+const QR_SIZE_PX = 180;
 
 function getBaseUrl() {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
