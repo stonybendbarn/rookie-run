@@ -19,6 +19,7 @@ const Section = ({
     >
       {title}
     </h2>
+
     <div
       style={{
         background: "rgba(255,255,255,0.06)",
@@ -53,7 +54,10 @@ const ulStyle: React.CSSProperties = {
   margin: "0.25rem 0 0",
   paddingLeft: "1.2rem",
 };
-const liStyle: React.CSSProperties = { margin: "0.35rem 0" };
+
+const liStyle: React.CSSProperties = {
+  margin: "0.35rem 0",
+};
 
 export default function RulesPage() {
   const sections = [
@@ -71,324 +75,339 @@ export default function RulesPage() {
   return (
     <main
       style={{
-        padding: "1.25rem",
-        maxWidth: 900,
-        margin: "0 auto",
+        minHeight: "100vh",
+        background: "#09090b",
         color: "#f9fafb",
-        lineHeight: 1.6,
-        fontSize: "1.05rem",
       }}
     >
-      <details
-        open
+      <div
         style={{
-          marginTop: "0.75rem",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.10)",
-          borderRadius: 14,
-          padding: "0.75rem 1rem",
+          padding: "1.25rem",
+          maxWidth: 900,
+          margin: "0 auto",
+          lineHeight: 1.6,
+          fontSize: "1.05rem",
         }}
       >
-        <summary
+        <details
+          open
           style={{
-            cursor: "pointer",
-            fontSize: "1.05rem",
-            fontWeight: 600,
-            listStyle: "none",
-            outline: "none",
-          }}
-        >
-          Jump to a section
-        </summary>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "0.5rem",
             marginTop: "0.75rem",
-          }}
-        >
-          {sections.map((s) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              style={{ textDecoration: "none", color: "#f9fafb" }}
-            >
-              <Pill>{s.label}</Pill>
-            </a>
-          ))}
-        </div>
-      </details>
-
-      <Section id="objective" title="Objective">
-        <p style={{ margin: 0 }}>
-          Be the first player to complete a timeline containing at least one card
-          from every sport and successfully complete your turn.
-        </p>
-        <p style={{ margin: "0.75rem 0 0" }}>
-          <strong>You may only win on your own turn.</strong> Completing your
-          final sport during a challenge does <strong>not</strong> win the game.
-          A Wild Card may not be used as the final placement required to win the
-          game, even if it completes your final sport.
-        </p>
-      </Section>
-
-      <Section id="setup" title="Setup">
-        <ul style={ulStyle}>
-          <li style={liStyle}>
-            Shuffle each sport into its own face-down deck (QR code facing up so
-            it can be scanned when drawn).
-          </li>
-          <li style={liStyle}>
-            All players start with no cards and no timeline.
-          </li>
-        </ul>
-      </Section>
-
-      <Section id="start" title="Start of Play">
-        <p style={{ margin: 0 }}>
-          The youngest player goes first. Play proceeds clockwise.
-        </p>
-      </Section>
-
-      <Section id="turn" title="Your Turn">
-        <ol style={{ margin: 0, paddingLeft: "1.25rem" }}>
-          <li style={liStyle}>
-            Choose a sport deck, draw one card, and scan it.
-          </li>
-          <li style={liStyle}>
-            Announce where you believe it belongs in your timeline.
-            <div style={{ marginTop: "0.35rem", opacity: 0.95 }}>
-              <Pill>
-                First card: Declare a decade or 10-year window (e.g., 2000s or
-                1996–2005)
-              </Pill>
-            </div>
-          </li>
-          <li style={liStyle}>If correct, place the card.</li>
-          <li style={liStyle}>If incorrect, discard it.</li>
-        </ol>
-
-        <div
-          style={{
-            marginTop: "0.85rem",
-            padding: "0.75rem",
-            borderRadius: 12,
-            background: "rgba(0,0,0,0.25)",
+            background: "rgba(255,255,255,0.04)",
             border: "1px solid rgba(255,255,255,0.10)",
+            borderRadius: 14,
+            padding: "0.75rem 1rem",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "0.35rem" }}>
-            First card rule
-          </div>
-          <div style={{ opacity: 0.95 }}>
-            Your first <strong>placed</strong> card must be within your declared
-            decade or 10-year window. <strong>No challenges are allowed</strong>{" "}
-            on a player’s first placed card.
-          </div>
-        </div>
-      </Section>
-
-      <Section id="timelines" title="Timelines">
-        <p style={{ margin: 0 }}>
-          Timelines must remain chronological. Exact years are not required —
-          only correct relative placement. Each placement window is inclusive of its listed years
-        </p>
-
-        <div
-          style={{
-            marginTop: "0.85rem",
-            padding: "0.75rem",
-            borderRadius: 12,
-            background: "rgba(0,0,0,0.25)",
-            border: "1px solid rgba(255,255,255,0.10)",
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: "0.35rem" }}>
-            Example timeline on the table
-          </div>
-          <div
+          <summary
             style={{
-              fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              cursor: "pointer",
               fontSize: "1.05rem",
-              whiteSpace: "nowrap",
-              overflowX: "auto",
-              paddingBottom: "0.25rem",
+              fontWeight: 600,
+              listStyle: "none",
+              outline: "none",
             }}
           >
-            1984 — 1990 — 1994 — 1998 — 2006
-          </div>
+            Jump to a section
+          </summary>
 
-          <div style={{ marginTop: "0.75rem", fontWeight: 700 }}>
-            Valid placement windows
-          </div>
           <div
             style={{
-              marginTop: "0.35rem",
               display: "flex",
               flexWrap: "wrap",
-              gap: "0.4rem",
+              gap: "0.5rem",
+              marginTop: "0.75rem",
             }}
           >
-            <Pill>in or before 1984</Pill>
-            <Pill>between 1984–1990</Pill>
-            <Pill>1990–1994</Pill>
-            <Pill>1994–1998</Pill>
-            <Pill>1998–2006</Pill>
-            <Pill>in or after 2006</Pill>
+            {sections.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                style={{ textDecoration: "none", color: "#f9fafb" }}
+              >
+                <Pill>{s.label}</Pill>
+              </a>
+            ))}
           </div>
+        </details>
 
-          <p style={{ margin: "0.75rem 0 0", opacity: 0.95 }}>
-            Saying “between 1990 and 1994” is valid if the rookie year is 1990,
-            1991, 1992, 1993, or 1994.
+        <Section id="objective" title="Objective">
+          <p style={{ margin: 0 }}>
+            Be the first player to complete a timeline containing at least one
+            card from every sport and successfully complete your turn.
           </p>
-        </div>
-      </Section>
+          <p style={{ margin: "0.75rem 0 0" }}>
+            <strong>You may only win on your own turn.</strong> Completing your
+            final sport during a challenge does <strong>not</strong> win the
+            game. A Wild Card may not be used as the final placement required to
+            win the game, even if it completes your final sport.
+          </p>
+        </Section>
 
-      <Section id="challenges" title="Challenges">
-        <ul style={ulStyle}>
-          <li style={liStyle}>
-            Only players with at least one card in their timeline may challenge.
-          </li>
-          <li style={liStyle}>
-            No challenges are allowed on a player’s first placed card.
-          </li>
-          <li style={liStyle}>
-            Challenges start to the left of the drawing player and proceed
-            clockwise.
-          </li>
-          <li style={liStyle}>
-            Each challenger must select a <strong>different</strong> placement
-            window — no duplicates.
-          </li>
-          <li style={liStyle}>
-            Players may not suggest placement windows to other challengers.
-          </li>
-        </ul>
-      </Section>
+        <Section id="setup" title="Setup">
+          <ul style={ulStyle}>
+            <li style={liStyle}>
+              Shuffle each sport into its own face-down deck (QR code facing up
+              so it can be scanned when drawn).
+            </li>
+            <li style={liStyle}>
+              All players start with no cards and no timeline.
+            </li>
+          </ul>
+        </Section>
 
-      <Section id="resolve" title="Resolving Challenges">
-        <p style={{ margin: 0 }}>
-          Reveal the rookie year, then play proceeds accordingly:
-        </p>
+        <Section id="start" title="Start of Play">
+          <p style={{ margin: 0 }}>
+            The youngest player goes first. Play proceeds clockwise.
+          </p>
+        </Section>
 
-        <div style={{ marginTop: "0.85rem", display: "grid", gap: "0.65rem" }}>
-          <div
-            style={{
-              padding: "0.85rem",
-              borderRadius: 12,
-              background: "rgba(34,197,94,0.10)",
-              border: "1px solid rgba(34,197,94,0.25)",
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Drawing player correct
-            </div>
-            <div>
-              Drawing player wins. All challengers lose one timeline card, chosen
-              by the drawing player and discarded.
-            </div>
-          </div>
+        <Section id="turn" title="Your Turn">
+          <ol style={{ margin: 0, paddingLeft: "1.25rem" }}>
+            <li style={liStyle}>
+              Choose a sport deck, draw one card, and scan it.
+            </li>
+            <li style={liStyle}>
+              Announce where you believe it belongs in your timeline.
+              <div style={{ marginTop: "0.35rem", opacity: 0.95 }}>
+                <Pill>
+                  First card: Declare a decade or 10-year window, such as 2000s
+                  or 1996–2005
+                </Pill>
+              </div>
+            </li>
+            <li style={liStyle}>
+              If correct, place the card year side up in front of you.
+            </li>
+            <li style={liStyle}>If incorrect, discard it.</li>
+          </ol>
 
           <div
             style={{
-              padding: "0.85rem",
+              marginTop: "0.85rem",
+              padding: "0.75rem",
               borderRadius: 12,
-              background: "rgba(59,130,246,0.10)",
-              border: "1px solid rgba(59,130,246,0.25)",
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Drawing player incorrect
-            </div>
-            <div>
-              Any challenger whose window contains the rookie year is correct
-              and loses nothing. The first correct challenger clockwise places
-              the drawn card into their timeline. The drawing player loses no
-              cards. All incorrect challengers lose one timeline card, chosen by
-              the winning challenger and discarded.
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: "0.85rem",
-              borderRadius: 12,
-              background: "rgba(239,68,68,0.10)",
-              border: "1px solid rgba(239,68,68,0.25)",
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              No winner
-            </div>
-            <div>
-              All challengers lose one timeline card of their choice and discard
-              it.
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      <Section id="wild" title="Wild Cards">
-        <p style={{ margin: "0 0 0.75rem", opacity: 0.95 }}>
-          Wild Cards represent positive and negative moments across sports that
-          can affect your turn, your timeline, and your opponents’ timelines.
-        </p>
-
-        <div style={{ display: "grid", gap: "0.65rem" }}>
-          <div
-            style={{
-              padding: "0.85rem",
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
+              background: "rgba(0,0,0,0.25)",
               border: "1px solid rgba(255,255,255,0.10)",
             }}
           >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Example
+            <div style={{ fontWeight: 700, marginBottom: "0.35rem" }}>
+              First card rule
             </div>
-            <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
-              <Pill>Walk-Off</Pill> <Pill>Game Set Match</Pill>{" "}
-              <Pill>Hat Trick</Pill> <Pill>Hole in One</Pill>
-            </div>
-            <div>
-              May be placed anywhere and count as that sport. A Wild Card does
-              not count as the required final placement to win the game. You
-              cannot win on this turn.
+            <div style={{ opacity: 0.95 }}>
+              Your first <strong>placed</strong> card must be within your
+              declared decade or 10-year window.{" "}
+              <strong>No challenges are allowed</strong> on a player’s first
+              placed card.
             </div>
           </div>
+        </Section>
+
+        <Section id="timelines" title="Timelines">
+          <p style={{ margin: 0 }}>
+            Timelines must remain chronological. Exact years are not required —
+            only correct relative placement. Each placement window is inclusive
+            of its listed years.
+          </p>
 
           <div
             style={{
-              padding: "0.85rem",
+              marginTop: "0.85rem",
+              padding: "0.75rem",
               borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
+              background: "rgba(0,0,0,0.25)",
               border: "1px solid rgba(255,255,255,0.10)",
             }}
           >
-            <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
-              Example
+            <div style={{ fontWeight: 700, marginBottom: "0.35rem" }}>
+              Example timeline on the table
             </div>
-            <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
-              <Pill>Technical Foul</Pill> <Pill>Penalty Box</Pill>{" "}
-              <Pill>Failed to Qualify</Pill>
+
+            <div
+              style={{
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                fontSize: "1.05rem",
+                whiteSpace: "nowrap",
+                overflowX: "auto",
+                paddingBottom: "0.25rem",
+              }}
+            >
+              1984 — 1990 — 1994 — 1998 — 2006
             </div>
-            <div>
-              Immediately discard this card and end your current turn. No
-              timeline card is placed, and you cannot win this turn.
+
+            <div style={{ marginTop: "0.75rem", fontWeight: 700 }}>
+              Valid placement windows
+            </div>
+
+            <div
+              style={{
+                marginTop: "0.35rem",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.4rem",
+              }}
+            >
+              <Pill>in or before 1984</Pill>
+              <Pill>between 1984–1990</Pill>
+              <Pill>1990–1994</Pill>
+              <Pill>1994–1998</Pill>
+              <Pill>1998–2006</Pill>
+              <Pill>in or after 2006</Pill>
+            </div>
+
+            <p style={{ margin: "0.75rem 0 0", opacity: 0.95 }}>
+              Saying “between 1990 and 1994” is valid if the rookie year is
+              1990, 1991, 1992, 1993, or 1994.
+            </p>
+          </div>
+        </Section>
+
+        <Section id="challenges" title="Challenges">
+          <ul style={ulStyle}>
+            <li style={liStyle}>
+              Only players with at least one card in their timeline may
+              challenge.
+            </li>
+            <li style={liStyle}>
+              No challenges are allowed on a player’s first placed card.
+            </li>
+            <li style={liStyle}>
+              Challenges start to the left of the drawing player and proceed
+              clockwise.
+            </li>
+            <li style={liStyle}>
+              Each challenger must select a <strong>different</strong> placement
+              window — no duplicates.
+            </li>
+            <li style={liStyle}>
+              Players may not suggest placement windows to other challengers.
+            </li>
+          </ul>
+        </Section>
+
+        <Section id="resolve" title="Resolving Challenges">
+          <p style={{ margin: 0 }}>
+            Reveal the rookie year, then play proceeds accordingly:
+          </p>
+
+          <div style={{ marginTop: "0.85rem", display: "grid", gap: "0.65rem" }}>
+            <div
+              style={{
+                padding: "0.85rem",
+                borderRadius: 12,
+                background: "rgba(34,197,94,0.10)",
+                border: "1px solid rgba(34,197,94,0.25)",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+                Drawing player correct
+              </div>
+              <div>
+                Drawing player wins. All challengers lose one timeline card,
+                chosen by the drawing player and discarded.
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "0.85rem",
+                borderRadius: 12,
+                background: "rgba(59,130,246,0.10)",
+                border: "1px solid rgba(59,130,246,0.25)",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+                Drawing player incorrect
+              </div>
+              <div>
+                Any challenger whose window contains the rookie year is correct
+                and loses nothing. The first correct challenger clockwise places
+                the drawn card into their timeline. The drawing player loses no
+                cards. All incorrect challengers lose one timeline card, chosen
+                by the winning challenger and discarded.
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "0.85rem",
+                borderRadius: 12,
+                background: "rgba(239,68,68,0.10)",
+                border: "1px solid rgba(239,68,68,0.25)",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+                No winner
+              </div>
+              <div>
+                All challengers lose one timeline card of their choice and
+                discard it.
+              </div>
             </div>
           </div>
-        </div>
-      </Section>
+        </Section>
 
-      <Section id="winning" title="Winning">
-        <p style={{ margin: 0 }}>
-          You win when your timeline contains all sports and you successfully
-          place a normal (non-Wild) timeline card on your own turn.
-        </p>
-      </Section>
+        <Section id="wild" title="Wild Cards">
+          <p style={{ margin: "0 0 0.75rem", opacity: 0.95 }}>
+            Wild Cards represent positive and negative moments across sports
+            that can affect your turn, your timeline, and your opponents’
+            timelines.
+          </p>
+
+          <div style={{ display: "grid", gap: "0.65rem" }}>
+            <div
+              style={{
+                padding: "0.85rem",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.10)",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+                Example
+              </div>
+              <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
+                <Pill>Walk-Off</Pill> <Pill>Game Set Match</Pill>{" "}
+                <Pill>Hat Trick</Pill> <Pill>Hole in One</Pill>
+              </div>
+              <div>
+                May be placed anywhere and count as that sport. A Wild Card does
+                not count as the required final placement to win the game. You
+                cannot win on this turn.
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "0.85rem",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.10)",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: "0.25rem" }}>
+                Example
+              </div>
+              <div style={{ opacity: 0.95, marginBottom: "0.35rem" }}>
+                <Pill>Technical Foul</Pill> <Pill>Penalty Box</Pill>{" "}
+                <Pill>Failed to Qualify</Pill>
+              </div>
+              <div>
+                Immediately discard this card and end your current turn. No
+                timeline card is placed, and you cannot win this turn.
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section id="winning" title="Winning">
+          <p style={{ margin: 0 }}>
+            You win when your timeline contains all sports and you successfully
+            place a normal, non-Wild timeline card on your own turn.
+          </p>
+        </Section>
+      </div>
     </main>
   );
 }
