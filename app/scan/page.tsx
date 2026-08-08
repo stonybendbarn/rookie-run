@@ -21,15 +21,6 @@ function audioDebug(event: string, details?: Record<string, unknown>) {
   console.log("[scan-audio]", event);
 }
 
-function getAudioErrorMessage(audio: HTMLAudioElement): string | undefined {
-  const code = audio.error?.code;
-  if (code === MediaError.MEDIA_ERR_ABORTED) return "MEDIA_ERR_ABORTED";
-  if (code === MediaError.MEDIA_ERR_NETWORK) return "MEDIA_ERR_NETWORK";
-  if (code === MediaError.MEDIA_ERR_DECODE) return "MEDIA_ERR_DECODE";
-  if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) return "MEDIA_ERR_SRC_NOT_SUPPORTED";
-  return audio.error ? `MediaError(${code ?? "unknown"})` : undefined;
-}
-
 async function fetchCard(cardId: string, signal?: AbortSignal) {
   const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, { signal });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -84,8 +75,7 @@ export default function ScanPage() {
     audio.currentTime = 0;
 
     if (clearSource) {
-      audio.removeAttribute("src");
-      audio.load();
+      audio.src = "";
     }
   }
 
@@ -121,8 +111,7 @@ export default function ScanPage() {
         audio.pause();
         audio.currentTime = 0;
         audio.volume = 1;
-        audio.removeAttribute("src");
-        audio.load();
+        audio.src = "";
         audioDebug("warmup-play-success", { stage: "start-scanner", persistent: true });
       })
       .catch((error: { name?: string; message?: string }) => {
@@ -174,7 +163,6 @@ export default function ScanPage() {
     if (!audio) {
       audioDebug("play-aborted", {
         cardId,
-        stage: "before-load",
         reason: "no-persistent-audio",
         generation: gen,
       });
@@ -186,63 +174,52 @@ export default function ScanPage() {
 
     audio.pause();
     audio.currentTime = 0;
+    audio.src = mp3Path;
 
-    const mp3Ready = await new Promise<boolean>((resolve) => {
-      let settled = false;
-      const finish = (ok: boolean, reason: string) => {
-        if (settled) return;
-        settled = true;
-        audio.oncanplaythrough = null;
-        audio.onerror = null;
-        audioDebug(ok ? "mp3-load-success" : "mp3-load-failed", {
-          cardId,
-          mp3Url,
-          reason,
-          mediaError: getAudioErrorMessage(audio),
-          generation: gen,
-          persistent: true,
-        });
-        resolve(ok);
-      };
+    let playPromise: Promise<void>;
+    try {
+      playPromise = audio.play();
+    } catch (error) {
+      const err = error as { name?: string; message?: string };
+      audioDebug("persistent-mp3-play-rejected", {
+        cardId,
+        mp3Url,
+        generation: gen,
+        name: err?.name ?? "Error",
+        message: err?.message ?? String(error),
+      });
 
-      audio.oncanplaythrough = () => finish(true, "canplaythrough");
-      audio.onerror = () => finish(false, "error");
-      audio.src = mp3Path;
-      audio.load();
+      if (gen !== playGenRef.current) return;
 
-      window.setTimeout(() => finish(false, "timeout"), 8000);
-    });
-
-    if (gen !== playGenRef.current) {
-      audioDebug("play-aborted", { cardId, stage: "after-load", reason: "superseded", generation: gen });
+      const text = fallbackText.trim();
+      if (text) speak(text, "persistent-mp3-play-rejected");
       return;
     }
 
-    if (mp3Ready) {
-      try {
-        await audio.play();
-        audioDebug("persistent-mp3-play-success", { cardId, mp3Url, generation: gen });
+    try {
+      await playPromise;
+
+      if (gen !== playGenRef.current) {
+        audioDebug("play-aborted", { cardId, reason: "superseded", generation: gen });
         return;
-      } catch (error) {
-        const err = error as { name?: string; message?: string };
-        audioDebug("persistent-mp3-play-rejected", {
-          cardId,
-          mp3Url,
-          generation: gen,
-          name: err?.name ?? "Error",
-          message: err?.message ?? String(error),
-        });
-        // Fall through to browser TTS.
       }
-    }
 
-    if (gen !== playGenRef.current) {
-      audioDebug("play-aborted", { cardId, stage: "before-fallback", reason: "superseded", generation: gen });
-      return;
-    }
+      audioDebug("persistent-mp3-play-success", { cardId, mp3Url, generation: gen });
+    } catch (error) {
+      const err = error as { name?: string; message?: string };
+      audioDebug("persistent-mp3-play-rejected", {
+        cardId,
+        mp3Url,
+        generation: gen,
+        name: err?.name ?? "Error",
+        message: err?.message ?? String(error),
+      });
 
-    const text = fallbackText.trim();
-    if (text) speak(text, mp3Ready ? "persistent-mp3-play-rejected" : "mp3-not-ready");
+      if (gen !== playGenRef.current) return;
+
+      const text = fallbackText.trim();
+      if (text) speak(text, "persistent-mp3-play-rejected");
+    }
   }
 
   const endGame = () => {
