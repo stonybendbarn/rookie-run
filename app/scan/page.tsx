@@ -6,6 +6,13 @@ import CardView from "@/components/CardView";
 
 type Card = Parameters<typeof CardView>[0]["card"];
 
+type AudioDiagnostic = {
+  cardId: string;
+  mp3Url: string;
+  errorName: string;
+  errorMessage: string;
+};
+
 function audioUrlForCard(cardId: string): string {
   return `/audio/cards/${encodeURIComponent(cardId.toUpperCase())}.mp3`;
 }
@@ -60,6 +67,7 @@ export default function ScanPage() {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [audioDiagnostic, setAudioDiagnostic] = useState<AudioDiagnostic | null>(null);
 
   // ---- Audio / TTS ----
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -125,33 +133,19 @@ export default function ScanPage() {
       });
   }
 
-  function speak(text: string, reason = "unknown") {
-    if (typeof window === "undefined") return;
-
-    audioDebug("browser-tts-fallback", { reason, textLength: text.length });
-
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-
-    synth.cancel();
-
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.0;
-    u.pitch = 1.0;
-    u.volume = 1.0;
-
-    const voices = synth.getVoices();
-    const preferred =
-      voices.find((v) => /en-US/i.test(v.lang) && /Google|Siri|Microsoft|Natural/i.test(v.name)) ||
-      voices.find((v) => /en-US/i.test(v.lang)) ||
-      voices.find((v) => /^en/i.test(v.lang));
-
-    if (preferred) u.voice = preferred;
-
-    synth.speak(u);
+  function reportAudioFailure(cardId: string, mp3Url: string, error: unknown) {
+    const err = error as { name?: string; message?: string };
+    setAudioDiagnostic({
+      cardId,
+      mp3Url,
+      errorName: err?.name ?? "Error",
+      errorMessage: err?.message ?? String(error),
+    });
   }
 
-  async function playCardAudio(cardId: string, fallbackText: string) {
+  async function playCardAudio(cardId: string) {
+    setAudioDiagnostic(null);
+
     const gen = ++playGenRef.current;
     const mp3Path = audioUrlForCard(cardId);
     const mp3Url =
@@ -167,8 +161,12 @@ export default function ScanPage() {
         generation: gen,
       });
 
-      const text = fallbackText.trim();
-      if (text) speak(text, "no-persistent-audio");
+      if (gen !== playGenRef.current) return;
+
+      reportAudioFailure(cardId, mp3Url, {
+        name: "NoPersistentAudio",
+        message: "Persistent audio element was not initialized. Tap Start Scanner first.",
+      });
       return;
     }
 
@@ -180,19 +178,17 @@ export default function ScanPage() {
     try {
       playPromise = audio.play();
     } catch (error) {
-      const err = error as { name?: string; message?: string };
       audioDebug("persistent-mp3-play-rejected", {
         cardId,
         mp3Url,
         generation: gen,
-        name: err?.name ?? "Error",
-        message: err?.message ?? String(error),
+        name: (error as { name?: string })?.name ?? "Error",
+        message: (error as { message?: string })?.message ?? String(error),
       });
 
       if (gen !== playGenRef.current) return;
 
-      const text = fallbackText.trim();
-      if (text) speak(text, "persistent-mp3-play-rejected");
+      reportAudioFailure(cardId, mp3Url, error);
       return;
     }
 
@@ -204,21 +200,20 @@ export default function ScanPage() {
         return;
       }
 
+      setAudioDiagnostic(null);
       audioDebug("persistent-mp3-play-success", { cardId, mp3Url, generation: gen });
     } catch (error) {
-      const err = error as { name?: string; message?: string };
       audioDebug("persistent-mp3-play-rejected", {
         cardId,
         mp3Url,
         generation: gen,
-        name: err?.name ?? "Error",
-        message: err?.message ?? String(error),
+        name: (error as { name?: string })?.name ?? "Error",
+        message: (error as { message?: string })?.message ?? String(error),
       });
 
       if (gen !== playGenRef.current) return;
 
-      const text = fallbackText.trim();
-      if (text) speak(text, "persistent-mp3-play-rejected");
+      reportAudioFailure(cardId, mp3Url, error);
     }
   }
 
@@ -226,6 +221,7 @@ export default function ScanPage() {
     stopAllAudio({ endSession: true });
     playGenRef.current += 1;
     lastSpokenIdRef.current = null;
+    setAudioDiagnostic(null);
 
     setScannedCardId(null);
     setCard(null);
@@ -240,9 +236,11 @@ export default function ScanPage() {
       setCard(null);
       setLoading(false);
       setLoadError(null);
+      setAudioDiagnostic(null);
       return;
     }
 
+    setAudioDiagnostic(null);
     const ac = new AbortController();
     setLoading(true);
     setLoadError(null);
@@ -267,7 +265,7 @@ export default function ScanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Play pre-generated audio (or fall back to browser TTS) after the card loads.
+  // Play pre-generated audio after the card loads.
   useEffect(() => {
     if (!ttsEnabled) return;
     if (!scannedCardId) return;
@@ -276,9 +274,8 @@ export default function ScanPage() {
     // Prevent double-play due to re-renders
     if (lastSpokenIdRef.current === scannedCardId) return;
 
-    const text = ((card as any)?.spoken_intro ?? "").trim();
     lastSpokenIdRef.current = scannedCardId;
-    void playCardAudio(card.id, text);
+    void playCardAudio(card.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ttsEnabled, scannedCardId, card]);
 
@@ -342,6 +339,7 @@ export default function ScanPage() {
           onScanSuccess={(id) => {
             // allow speaking when the new card loads
             lastSpokenIdRef.current = null;
+            setAudioDiagnostic(null);
             setScannedCardId(id);
           }}
           // Once the user clicked "Start Scanner", we can best-effort autoStart.
@@ -391,6 +389,26 @@ export default function ScanPage() {
               ) : card ? (
                 <div style={{ color: "#ffffff" }}>
                   <CardView card={card} showScanNext={false} theme="dark" />
+                  {audioDiagnostic ? (
+                    <div
+                      style={{
+                        marginTop: 16,
+                        padding: 12,
+                        borderRadius: 10,
+                        background: "rgba(239, 68, 68, 0.12)",
+                        border: "1px solid rgba(239, 68, 68, 0.35)",
+                        fontSize: 13,
+                        lineHeight: 1.45,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, marginBottom: 8 }}>
+                        Audio failed: {audioDiagnostic.errorName} - {audioDiagnostic.errorMessage}
+                      </div>
+                      <div>Card ID: {audioDiagnostic.cardId}</div>
+                      <div>MP3 URL: {audioDiagnostic.mp3Url}</div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div style={{ padding: 24, opacity: 0.9 }}>No card found.</div>
@@ -435,8 +453,7 @@ export default function ScanPage() {
                 onClick={() => {
                   if (!card) return;
                   lastSpokenIdRef.current = null;
-                  const text = ((card as any)?.spoken_intro ?? "").trim();
-                  void playCardAudio(card.id, text);
+                  void playCardAudio(card.id);
                 }}
                 disabled={!card}
                 style={{
