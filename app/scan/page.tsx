@@ -6,6 +6,10 @@ import CardView from "@/components/CardView";
 
 type Card = Parameters<typeof CardView>[0]["card"];
 
+function audioUrlForCard(cardId: string): string {
+  return `/audio/cards/${encodeURIComponent(cardId.toUpperCase())}.mp3`;
+}
+
 async function fetchCard(cardId: string, signal?: AbortSignal) {
   const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, { signal });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -46,9 +50,25 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ---- TTS ----
+  // ---- Audio / TTS ----
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const lastSpokenIdRef = useRef<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playGenRef = useRef(0);
+
+  function stopAllAudio() {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audioRef.current = null;
+    }
+
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }
 
   function speak(text: string) {
     if (typeof window === "undefined") return;
@@ -56,7 +76,6 @@ export default function ScanPage() {
     const synth = window.speechSynthesis;
     if (!synth) return;
 
-    // Stop anything currently speaking (important when scanning fast)
     synth.cancel();
 
     const u = new SpeechSynthesisUtterance(text);
@@ -64,7 +83,6 @@ export default function ScanPage() {
     u.pitch = 1.0;
     u.volume = 1.0;
 
-    // Best-effort: pick an English voice if available
     const voices = synth.getVoices();
     const preferred =
       voices.find((v) => /en-US/i.test(v.lang) && /Google|Siri|Microsoft|Natural/i.test(v.name)) ||
@@ -73,16 +91,51 @@ export default function ScanPage() {
 
     if (preferred) u.voice = preferred;
 
-    // Some browsers populate voices async; if empty, still try to speak
-    // (it will use the default voice).
     synth.speak(u);
   }
 
-  const endGame = () => {
-    // stop any audio + allow future cards to speak
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+  async function playCardAudio(cardId: string, fallbackText: string) {
+    stopAllAudio();
+
+    const gen = ++playGenRef.current;
+    const audio = new Audio(audioUrlForCard(cardId));
+    audioRef.current = audio;
+
+    const mp3Ready = await new Promise<boolean>((resolve) => {
+      let settled = false;
+      const finish = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        resolve(ok);
+      };
+
+      audio.oncanplaythrough = () => finish(true);
+      audio.onerror = () => finish(false);
+      audio.load();
+
+      window.setTimeout(() => finish(false), 8000);
+    });
+
+    if (gen !== playGenRef.current) return;
+
+    if (mp3Ready && audioRef.current === audio) {
+      try {
+        await audio.play();
+        return;
+      } catch {
+        // Fall through to browser TTS.
+      }
     }
+
+    if (gen !== playGenRef.current) return;
+
+    const text = fallbackText.trim();
+    if (text) speak(text);
+  }
+
+  const endGame = () => {
+    stopAllAudio();
+    playGenRef.current += 1;
     lastSpokenIdRef.current = null;
 
     setScannedCardId(null);
@@ -117,20 +170,27 @@ export default function ScanPage() {
     return () => ac.abort();
   }, [scannedCardId]);
 
-  // Speak after the card is loaded
+  useEffect(() => {
+    return () => {
+      stopAllAudio();
+      playGenRef.current += 1;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Play pre-generated audio (or fall back to browser TTS) after the card loads.
   useEffect(() => {
     if (!ttsEnabled) return;
     if (!scannedCardId) return;
     if (!card) return;
 
-    // Prevent double-speaking due to re-renders
+    // Prevent double-play due to re-renders
     if (lastSpokenIdRef.current === scannedCardId) return;
 
     const text = ((card as any)?.spoken_intro ?? "").trim();
-    if (!text) return;
-
     lastSpokenIdRef.current = scannedCardId;
-    speak(text);
+    void playCardAudio(card.id, text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ttsEnabled, scannedCardId, card]);
 
   return (
@@ -154,19 +214,28 @@ export default function ScanPage() {
 		  onClick={() => {
 			  setScannerStarted(true);
 
-			  // 🔊 Prime TTS for iOS Safari / Chrome / DuckDuckGo
-			  if (typeof window !== "undefined" && window.speechSynthesis) {
-				const synth = window.speechSynthesis;
+			  // Prime audio playback for iOS Safari / Chrome / DuckDuckGo
+			  if (typeof window !== "undefined") {
+				if (window.speechSynthesis) {
+				  const synth = window.speechSynthesis;
+				  synth.getVoices();
 
-				// Force voice list to load
-				synth.getVoices();
+				  try {
+					const u = new SpeechSynthesisUtterance(" ");
+					u.volume = 0;
+					synth.speak(u);
+					synth.cancel();
+				  } catch {
+					// no-op
+				  }
+				}
 
-				// Silent warm-up utterance (unlocks audio on iOS)
 				try {
-				  const u = new SpeechSynthesisUtterance(" ");
-				  u.volume = 0;
-				  synth.speak(u);
-				  synth.cancel();
+				  const prime = new Audio();
+				  prime.volume = 0;
+				  prime.src =
+					"data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAA==";
+				  void prime.play().then(() => prime.pause()).catch(() => {});
 				} catch {
 				  // no-op
 				}
@@ -259,10 +328,8 @@ export default function ScanPage() {
             >
               <button
                 onClick={() => {
-                  // stop audio + allow next scan to speak
-                  if (typeof window !== "undefined" && window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                  }
+                  stopAllAudio();
+                  playGenRef.current += 1;
                   lastSpokenIdRef.current = null;
 
                   setScannedCardId(null);
@@ -285,8 +352,10 @@ export default function ScanPage() {
 
               <button
                 onClick={() => {
+                  if (!card) return;
+                  lastSpokenIdRef.current = null;
                   const text = ((card as any)?.spoken_intro ?? "").trim();
-                  if (text) speak(text);
+                  void playCardAudio(card.id, text);
                 }}
                 disabled={!card}
                 style={{

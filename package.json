@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "qr": "node scripts/generate-qr.mjs"
+    "qr": "node scripts/generate-qr.mjs",
+    "audio": "node scripts/generate-audio.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
