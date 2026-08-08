@@ -10,6 +10,26 @@ function audioUrlForCard(cardId: string): string {
   return `/audio/cards/${encodeURIComponent(cardId.toUpperCase())}.mp3`;
 }
 
+const AUDIO_DEBUG = process.env.NODE_ENV === "development";
+
+function audioDebug(event: string, details?: Record<string, unknown>) {
+  if (!AUDIO_DEBUG) return;
+  if (details) {
+    console.log("[scan-audio]", event, details);
+    return;
+  }
+  console.log("[scan-audio]", event);
+}
+
+function getAudioErrorMessage(audio: HTMLAudioElement): string | undefined {
+  const code = audio.error?.code;
+  if (code === MediaError.MEDIA_ERR_ABORTED) return "MEDIA_ERR_ABORTED";
+  if (code === MediaError.MEDIA_ERR_NETWORK) return "MEDIA_ERR_NETWORK";
+  if (code === MediaError.MEDIA_ERR_DECODE) return "MEDIA_ERR_DECODE";
+  if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) return "MEDIA_ERR_SRC_NOT_SUPPORTED";
+  return audio.error ? `MediaError(${code ?? "unknown"})` : undefined;
+}
+
 async function fetchCard(cardId: string, signal?: AbortSignal) {
   const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}`, { signal });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -56,12 +76,23 @@ export default function ScanPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playGenRef = useRef(0);
 
-  function stopAllAudio() {
+  function resetPersistentAudio(clearSource = false) {
     const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    if (clearSource) {
       audio.removeAttribute("src");
       audio.load();
+    }
+  }
+
+  function stopAllAudio(options: { endSession?: boolean } = {}) {
+    resetPersistentAudio(true);
+
+    if (options.endSession) {
       audioRef.current = null;
     }
 
@@ -70,8 +101,45 @@ export default function ScanPage() {
     }
   }
 
-  function speak(text: string) {
+  function unlockPersistentAudio() {
     if (typeof window === "undefined") return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+
+    const audio = audioRef.current;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 0;
+    audio.src =
+      "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAA==";
+
+    void audio
+      .play()
+      .then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 1;
+        audio.removeAttribute("src");
+        audio.load();
+        audioDebug("warmup-play-success", { stage: "start-scanner", persistent: true });
+      })
+      .catch((error: { name?: string; message?: string }) => {
+        audio.volume = 1;
+        audioDebug("warmup-play-rejected", {
+          stage: "start-scanner",
+          persistent: true,
+          name: error?.name ?? "Error",
+          message: error?.message ?? String(error),
+        });
+      });
+  }
+
+  function speak(text: string, reason = "unknown") {
+    if (typeof window === "undefined") return;
+
+    audioDebug("browser-tts-fallback", { reason, textLength: text.length });
 
     const synth = window.speechSynthesis;
     if (!synth) return;
@@ -95,46 +163,90 @@ export default function ScanPage() {
   }
 
   async function playCardAudio(cardId: string, fallbackText: string) {
-    stopAllAudio();
-
     const gen = ++playGenRef.current;
-    const audio = new Audio(audioUrlForCard(cardId));
-    audioRef.current = audio;
+    const mp3Path = audioUrlForCard(cardId);
+    const mp3Url =
+      typeof window !== "undefined" ? new URL(mp3Path, window.location.origin).href : mp3Path;
+
+    audioDebug("play-requested", { cardId, mp3Path, mp3Url, generation: gen, persistent: true });
+
+    const audio = audioRef.current;
+    if (!audio) {
+      audioDebug("play-aborted", {
+        cardId,
+        stage: "before-load",
+        reason: "no-persistent-audio",
+        generation: gen,
+      });
+
+      const text = fallbackText.trim();
+      if (text) speak(text, "no-persistent-audio");
+      return;
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
 
     const mp3Ready = await new Promise<boolean>((resolve) => {
       let settled = false;
-      const finish = (ok: boolean) => {
+      const finish = (ok: boolean, reason: string) => {
         if (settled) return;
         settled = true;
+        audio.oncanplaythrough = null;
+        audio.onerror = null;
+        audioDebug(ok ? "mp3-load-success" : "mp3-load-failed", {
+          cardId,
+          mp3Url,
+          reason,
+          mediaError: getAudioErrorMessage(audio),
+          generation: gen,
+          persistent: true,
+        });
         resolve(ok);
       };
 
-      audio.oncanplaythrough = () => finish(true);
-      audio.onerror = () => finish(false);
+      audio.oncanplaythrough = () => finish(true, "canplaythrough");
+      audio.onerror = () => finish(false, "error");
+      audio.src = mp3Path;
       audio.load();
 
-      window.setTimeout(() => finish(false), 8000);
+      window.setTimeout(() => finish(false, "timeout"), 8000);
     });
 
-    if (gen !== playGenRef.current) return;
+    if (gen !== playGenRef.current) {
+      audioDebug("play-aborted", { cardId, stage: "after-load", reason: "superseded", generation: gen });
+      return;
+    }
 
-    if (mp3Ready && audioRef.current === audio) {
+    if (mp3Ready) {
       try {
         await audio.play();
+        audioDebug("persistent-mp3-play-success", { cardId, mp3Url, generation: gen });
         return;
-      } catch {
+      } catch (error) {
+        const err = error as { name?: string; message?: string };
+        audioDebug("persistent-mp3-play-rejected", {
+          cardId,
+          mp3Url,
+          generation: gen,
+          name: err?.name ?? "Error",
+          message: err?.message ?? String(error),
+        });
         // Fall through to browser TTS.
       }
     }
 
-    if (gen !== playGenRef.current) return;
+    if (gen !== playGenRef.current) {
+      audioDebug("play-aborted", { cardId, stage: "before-fallback", reason: "superseded", generation: gen });
+      return;
+    }
 
     const text = fallbackText.trim();
-    if (text) speak(text);
+    if (text) speak(text, mp3Ready ? "persistent-mp3-play-rejected" : "mp3-not-ready");
   }
 
   const endGame = () => {
-    stopAllAudio();
+    stopAllAudio({ endSession: true });
     playGenRef.current += 1;
     lastSpokenIdRef.current = null;
 
@@ -172,7 +284,7 @@ export default function ScanPage() {
 
   useEffect(() => {
     return () => {
-      stopAllAudio();
+      stopAllAudio({ endSession: true });
       playGenRef.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,15 +342,7 @@ export default function ScanPage() {
 				  }
 				}
 
-				try {
-				  const prime = new Audio();
-				  prime.volume = 0;
-				  prime.src =
-					"data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQQAAAAAAA==";
-				  void prime.play().then(() => prime.pause()).catch(() => {});
-				} catch {
-				  // no-op
-				}
+				unlockPersistentAudio();
 			  }
 			}}
           style={{
